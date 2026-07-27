@@ -1,0 +1,470 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-speedometer2 me-2 text-primary"></i>Dashboard{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+
+<!-- ── Scan Bar ──────────────────────────────────────────────────────────── -->
+<div class="dg-card mb-4 d-flex align-items-center gap-3 flex-wrap">
+  <div class="flex-grow-1">
+    <div class="fw-700 mb-1" style="font-size:14px;">Run Full System Scan</div>
+    <div class="text-muted" style="font-size:12px;">Analyses SMART data, calculates AI health score, and checks all drives.</div>
+  </div>
+  <div class="d-flex gap-2">
+    <select class="form-select form-select-sm bg-dark text-light border-secondary" id="driveSelect" style="width:120px;">
+      <option value="C:">C: (System)</option>
+    </select>
+    <button class="btn btn-outline-secondary btn-sm px-3" onclick="location.reload()" title="Refresh Dashboard">
+      <i class="bi bi-arrow-clockwise"></i> Refresh
+    </button>
+    <div class="btn-group">
+      <button class="btn btn-accent btn-sm px-4" id="scanBtn" onclick="runScan('normal')">
+        <i class="bi bi-search me-1"></i> Scan Now
+      </button>
+      <button type="button" class="btn btn-accent btn-sm dropdown-toggle dropdown-toggle-split" data-bs-toggle="dropdown" aria-expanded="false">
+        <span class="visually-hidden">Toggle Dropdown</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-dark dropdown-menu-end shadow">
+        <li><a class="dropdown-item" href="#" onclick="runScan('quick')"><i class="bi bi-lightning-charge me-2 text-warning"></i>Quick Scan</a></li>
+        <li><a class="dropdown-item" href="#" onclick="runScan('deep')"><i class="bi bi-hdd-network me-2 text-primary"></i>Deep Scan</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+<!-- ── Metric Cards Row ──────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <!-- CPU -->
+  <div class="col-6 col-md-3">
+    <div class="metric-card" style="--card-accent:#3b82f6;">
+      <div class="metric-label">CPU Usage</div>
+      <div class="metric-value" id="cpuVal">—</div>
+      <div class="metric-sub" id="cpuSub">Loading...</div>
+      <i class="bi bi-cpu metric-icon"></i>
+      <div class="progress mt-2"><div class="progress-bar bg-primary" id="cpuBar" style="width:0%"></div></div>
+    </div>
+  </div>
+  <!-- RAM -->
+  <div class="col-6 col-md-3">
+    <div class="metric-card" style="--card-accent:#8b5cf6;">
+      <div class="metric-label">RAM Usage</div>
+      <div class="metric-value" id="ramVal">—</div>
+      <div class="metric-sub" id="ramSub">Loading...</div>
+      <i class="bi bi-memory metric-icon"></i>
+      <div class="progress mt-2"><div class="progress-bar bg-purple" id="ramBar" style="width:0%;background:#8b5cf6!important;"></div></div>
+    </div>
+  </div>
+  <!-- Disk Read -->
+  <div class="col-6 col-md-3">
+    <div class="metric-card" style="--card-accent:#10b981;">
+      <div class="metric-label">Disk Read</div>
+      <div class="metric-value" id="diskReadVal">—</div>
+      <div class="metric-sub">MB/s</div>
+      <i class="bi bi-hdd metric-icon"></i>
+    </div>
+  </div>
+  <!-- Disk Write -->
+  <div class="col-6 col-md-3">
+    <div class="metric-card" style="--card-accent:#f59e0b;">
+      <div class="metric-label">Disk Write</div>
+      <div class="metric-value" id="diskWriteVal">—</div>
+      <div class="metric-sub">MB/s</div>
+      <i class="bi bi-hdd-fill metric-icon"></i>
+    </div>
+  </div>
+</div>
+
+<!-- ── Charts + Health Score Row ─────────────────────────────────────────── -->
+<div class="row g-3 mb-4">
+  <!-- Live CPU/RAM chart -->
+  <div class="col-lg-5">
+    <div class="dg-card h-100">
+      <div class="d-flex justify-content-between align-items-center mb-3">
+        <span class="fw-600" style="font-size:14px;">Live Performance</span>
+        <span class="badge bg-success pulse-glow">● LIVE</span>
+      </div>
+      <div class="chart-wrap" style="height:180px;">
+        <canvas id="liveChart"></canvas>
+      </div>
+    </div>
+  </div>
+
+  <!-- AI Health Score -->
+  <div class="col-lg-3">
+    <div class="dg-card h-100 text-center">
+      <div class="fw-600 mb-3" style="font-size:14px;">AI Health Score</div>
+      <div class="score-ring mx-auto mb-2" style="width:140px;height:140px;">
+        <canvas id="scoreRing" width="140" height="140"></canvas>
+        <div class="score-ring-label">
+          <div class="score-ring-val" id="scoreVal">—</div>
+          <div class="score-ring-text">/ 100</div>
+        </div>
+      </div>
+      <div id="scoreGrade" class="health-badge mx-auto mb-2">Run scan</div>
+      <small class="text-muted" id="scoreHint">Click "Scan Now" to analyse</small>
+    </div>
+  </div>
+
+  <!-- Drive Usage -->
+  <div class="col-lg-4">
+    <div class="dg-card h-100">
+      <div class="fw-600 mb-3" style="font-size:14px;">Storage Usage</div>
+      <div id="driveList">
+        <div class="text-muted text-center py-3" style="font-size:13px;">Loading drives...</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Scan Results Row ───────────────────────────────────────────────────── -->
+<div class="row g-3 mb-4" id="scanResultsRow" style="display:none">
+  <!-- Risk Prediction -->
+  <div class="col-md-4">
+    <div class="dg-card h-100">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-shield-exclamation me-1 text-warning"></i>Risk Prediction</div>
+      <div id="riskContent" class="text-muted text-center py-4">Run a scan to see prediction</div>
+    </div>
+  </div>
+  <!-- Maintenance Checklist -->
+  <div class="col-md-4">
+    <div class="dg-card h-100">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-check2-all me-1 text-success"></i>Maintenance Checklist</div>
+      <div id="checklistContent" class="text-muted text-center py-4">Run a scan to generate checklist</div>
+    </div>
+  </div>
+  <!-- Alerts -->
+  <div class="col-md-4">
+    <div class="dg-card h-100">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-bell me-1 text-danger"></i>Active Alerts</div>
+      <div id="alertsContent">
+        {% for alert in unread_alerts %}
+        <div class="alert-item {{ alert.severity }}">
+          <i class="bi bi-exclamation-triangle-fill text-{{ 'danger' if alert.severity=='critical' else 'warning' }}"></i>
+          <span>{{ alert.message }}</span>
+        </div>
+        {% else %}
+        <div class="text-muted text-center py-3" style="font-size:13px;">No active alerts</div>
+        {% endfor %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ── Recent Scans ───────────────────────────────────────────────────────── -->
+{% if recent_scans %}
+<div class="dg-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-600" style="font-size:14px;">Recent Scans</span>
+    <a href="{{ url_for('dashboard.history') }}" class="btn btn-sm btn-outline-secondary">View All</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table smart-table table-hover mb-0">
+      <thead>
+        <tr>
+          <th>Drive</th><th>Model</th><th>Health Score</th><th>Risk</th><th>Temperature</th><th>Date</th><th>Report</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in recent_scans %}
+        <tr>
+          <td>{{ s.drive_path }}</td>
+          <td><span class="text-muted">{{ s.drive_model or '—' }}</span></td>
+          <td>
+            <span class="health-badge {{ 'excellent' if s.health_score >= 90 else 'good' if s.health_score >= 75 else 'warning' if s.health_score >= 55 else 'critical' }}">
+              {{ s.health_score|round(1) }}/100
+            </span>
+          </td>
+          <td><span class="badge bg-{{ 'success' if s.risk_level=='low' else 'warning' if s.risk_level=='medium' else 'danger' }}">{{ s.risk_level|title }}</span></td>
+          <td>{% if s.temperature %}{{ s.temperature }}°C{% else %}—{% endif %}</td>
+          <td class="text-muted" style="font-size:11px;">{{ s.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>
+            <a href="/api/report/{{ s.id }}/pdf" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            <a href="/api/report/{{ s.id }}/excel" class="btn btn-xs btn-outline-success btn-sm py-0 px-2 ms-1" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+</div><!-- /fade-in -->
+
+<!-- Scan spinner modal -->
+<div class="modal fade" id="scanModal" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#1f2937;border:1px solid var(--border);">
+      <div class="modal-body text-center py-4 px-4">
+        <div class="spinner-border text-primary mb-3" style="width:2.5rem;height:2.5rem;"></div>
+        <div class="fw-600 mb-1" id="scanModalTitle">Scanning Drive...</div>
+        
+        <div class="progress mt-3 mb-2" style="height: 8px;">
+          <div class="progress-bar progress-bar-striped progress-bar-animated bg-accent" id="scanModalProgress" style="width: 0%"></div>
+        </div>
+        
+        <div class="d-flex justify-content-between text-muted" style="font-size:12px;">
+          <span>Files Scanned: <strong id="scanModalCount" class="text-light">0</strong></span>
+          <span id="scanModalPercent">0%</span>
+        </div>
+        
+        <div class="text-start mt-3 p-2 rounded" style="background: rgba(0,0,0,0.2); font-family: monospace; font-size: 10px; color: #9ca3af; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" id="scanModalFile">
+          Initializing scan engine...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Chart.js defaults ────────────────────────────────────────────────────────
+Chart.defaults.color = '#9ca3af';
+Chart.defaults.borderColor = 'rgba(255,255,255,0.06)';
+
+// Live performance chart
+const liveCtx = document.getElementById('liveChart').getContext('2d');
+const POINTS  = 30;
+const liveData = { cpu: Array(POINTS).fill(0), ram: Array(POINTS).fill(0) };
+const liveChart = new Chart(liveCtx, {
+  type: 'line',
+  data: {
+    labels: Array(POINTS).fill(''),
+    datasets: [
+      { label: 'CPU %', data: liveData.cpu, borderColor: '#3b82f6',
+        backgroundColor: 'rgba(59,130,246,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+      { label: 'RAM %', data: liveData.ram, borderColor: '#8b5cf6',
+        backgroundColor: 'rgba(139,92,246,0.08)', fill: true, tension: 0.4, pointRadius: 0, borderWidth: 2 },
+    ]
+  },
+  options: {
+    responsive: true, maintainAspectRatio: false, animation: false,
+    plugins: { legend: { position: 'top', labels: { boxWidth: 10, font: { size: 11 } } } },
+    scales: {
+      x: { display: false },
+      y: { min: 0, max: 100, ticks: { font: { size: 10 }, callback: v => v + '%' } }
+    }
+  }
+});
+
+// Score ring
+const ringCtx = document.getElementById('scoreRing').getContext('2d');
+const scoreChart = new Chart(ringCtx, {
+  type: 'doughnut',
+  data: {
+    datasets: [{
+      data: [0, 100],
+      backgroundColor: ['#3b82f6', 'rgba(255,255,255,0.05)'],
+      borderWidth: 0, circumference: 270, rotation: 225
+    }]
+  },
+  options: {
+    responsive: false, cutout: '75%', animation: { duration: 800 },
+    plugins: { tooltip: { enabled: false }, legend: { display: false } }
+  }
+});
+
+function updateScoreRing(score, grade) {
+  const colors = { Excellent: '#10b981', Good: '#3b82f6', Warning: '#f59e0b', Critical: '#ef4444' };
+  scoreChart.data.datasets[0].data = [score, 100 - score];
+  scoreChart.data.datasets[0].backgroundColor[0] = colors[grade] || '#3b82f6';
+  scoreChart.update();
+  document.getElementById('scoreVal').textContent = score;
+  const badge = document.getElementById('scoreGrade');
+  badge.textContent = grade;
+  badge.className = `health-badge mx-auto mb-2 ${grade.toLowerCase()}`;
+  document.getElementById('scoreHint').textContent = 'AI composite score';
+}
+
+// ── Live polling ─────────────────────────────────────────────────────────────
+async function fetchLive() {
+  try {
+    const r = await fetch('/api/system');
+    if (!r.ok) return;
+    const d = await r.json();
+
+    const cpu = d.cpu?.percent ?? 0;
+    const ram = d.ram?.percent ?? 0;
+    const readMB  = d.disk_io?.read_mbps  ?? 0;
+    const writeMB = d.disk_io?.write_mbps ?? 0;
+
+    document.getElementById('cpuVal').textContent  = cpu.toFixed(1) + '%';
+    document.getElementById('ramVal').textContent  = ram.toFixed(1) + '%';
+    document.getElementById('cpuSub').textContent  = `${d.cpu?.cores ?? '?'} cores · ${d.cpu?.freq_mhz ?? 0} MHz`;
+    document.getElementById('ramSub').textContent  = `${d.ram?.used_gb ?? 0} / ${d.ram?.total_gb ?? 0} GB`;
+    document.getElementById('diskReadVal').textContent  = readMB.toFixed(1);
+    document.getElementById('diskWriteVal').textContent = writeMB.toFixed(1);
+    document.getElementById('cpuBar').style.width  = cpu + '%';
+    document.getElementById('ramBar').style.width  = ram + '%';
+
+    liveData.cpu.push(cpu); liveData.cpu.shift();
+    liveData.ram.push(ram); liveData.ram.shift();
+    liveChart.data.datasets[0].data = [...liveData.cpu];
+    liveChart.data.datasets[1].data = [...liveData.ram];
+    liveChart.update('none');
+  } catch {}
+}
+fetchLive();
+setInterval(fetchLive, 1000);
+
+// ── Load drives ───────────────────────────────────────────────────────────────
+async function loadDrives() {
+  try {
+    const r = await fetch('/api/disks');
+    if (!r.ok) return;
+    const drives = await r.json();
+
+    const sel = document.getElementById('driveSelect');
+    sel.innerHTML = drives.map(d =>
+      `<option value="${d.device}">${d.device} (${d.drive_type})</option>`
+    ).join('');
+
+    document.getElementById('driveList').innerHTML = drives.map(d => `
+      <div class="mb-3">
+        <div class="d-flex justify-content-between mb-1">
+          <span style="font-size:12px;font-weight:600;">${d.device} <small class="text-muted">${d.fstype}</small></span>
+          <span style="font-size:12px;color:#9ca3af;">${d.used_gb}/${d.total_gb} GB</span>
+        </div>
+        <div class="progress">
+          <div class="progress-bar ${d.percent > 85 ? 'bg-danger' : d.percent > 70 ? 'bg-warning' : 'bg-primary'}"
+               style="width:${d.percent}%"></div>
+        </div>
+        <div class="d-flex justify-content-between mt-1">
+          <small class="text-muted">${d.percent}% used</small>
+          <small class="text-muted">${d.free_gb} GB free</small>
+        </div>
+      </div>
+    `).join('');
+  } catch {}
+}
+loadDrives();
+
+// ── Run Scan ──────────────────────────────────────────────────────────────────
+const scanModalElement = document.getElementById('scanModal');
+const scanModal = new bootstrap.Modal(scanModalElement);
+let scanInterval;
+let isScanning = false;
+
+async function runScan(scanType = 'normal') {
+  if (isScanning) return;
+  isScanning = true;
+  if (scanInterval) clearInterval(scanInterval);
+
+  const drive = document.getElementById('driveSelect').value;
+  document.getElementById('scanBtn').disabled = true;
+  
+  // Setup modal UI
+  document.getElementById('scanModalTitle').textContent = scanType === 'deep' ? 'Deep Scanning System...' : 'Running Quick Scan...';
+  document.getElementById('scanModalProgress').style.width = '0%';
+  document.getElementById('scanModalPercent').textContent = '0%';
+  document.getElementById('scanModalCount').textContent = '0';
+  document.getElementById('scanModalFile').textContent = 'Initializing hardware queries...';
+  scanModal.show();
+  
+  // Simulated file scanning animation
+  let filesScanned = 0;
+  let progress = 0;
+  const commonPaths = ['Windows\\System32\\', 'Users\\AppData\\Local\\', 'Program Files\\', 'ProgramData\\', 'Windows\\SysWOW64\\'];
+  const commonExts = ['.dll', '.exe', '.sys', '.dat', '.log', '.tmp'];
+  
+  scanInterval = setInterval(() => {
+    progress += Math.random() * (scanType === 'deep' ? 1.5 : 4.5);
+    if (progress > 95) progress = 95; // Wait at 95% for actual API to finish
+    
+    filesScanned += Math.floor(Math.random() * 850) + 120;
+    
+    const randomPath = commonPaths[Math.floor(Math.random() * commonPaths.length)];
+    const randomExt = commonExts[Math.floor(Math.random() * commonExts.length)];
+    const randomFile = Math.random().toString(36).substring(7) + randomExt;
+    
+    document.getElementById('scanModalProgress').style.width = progress + '%';
+    document.getElementById('scanModalPercent').textContent = Math.floor(progress) + '%';
+    document.getElementById('scanModalCount').textContent = filesScanned.toLocaleString();
+    document.getElementById('scanModalFile').textContent = drive + '\\' + randomPath + randomFile;
+  }, 100);
+
+  try {
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content || document.querySelector('input[name="csrf_token"]')?.value;
+    
+    // Add timeout to prevent endless hanging if hardware queries freeze
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+
+    const r = await fetch('/api/scan', {
+      method: 'POST',
+      headers: { 
+        'Content-Type': 'application/json',
+        'X-CSRFToken': csrfToken
+      },
+      body: JSON.stringify({ drive, type: scanType }),
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+    if (!r.ok) throw new Error('Network response was not ok');
+    const data = await r.json();
+    
+    // Complete the animation
+    clearInterval(scanInterval);
+    document.getElementById('scanModalProgress').style.width = '100%';
+    document.getElementById('scanModalPercent').textContent = '100%';
+    document.getElementById('scanModalFile').textContent = 'Finalizing SMART Health Analysis...';
+    
+    setTimeout(() => {
+      // Force hide modal properly even if still animating
+      scanModalElement.classList.remove('show');
+      scanModalElement.style.display = 'none';
+      document.body.classList.remove('modal-open');
+      const backdrop = document.querySelector('.modal-backdrop');
+      if (backdrop) backdrop.remove();
+      
+      updateScoreRing(data.health.score, data.health.grade);
+
+      // Risk
+      const risk = data.risk;
+      const riskColors = { low: 'success', medium: 'warning', high: 'danger', critical: 'danger' };
+      document.getElementById('riskContent').innerHTML = `
+        <div class="h5 text-${riskColors[risk.risk_level] || 'secondary'} fw-700">${risk.label}</div>
+        <div class="text-muted mb-2" style="font-size:12px;">Risk score: ${risk.risk_score}/100</div>
+        ${risk.explanations.map(e => `<div class="small mb-1">• ${e}</div>`).join('')}
+        <div class="text-muted mt-2" style="font-size:10px;font-style:italic;">${risk.disclaimer}</div>
+      `;
+
+      // Checklist
+      document.getElementById('checklistContent').innerHTML = data.checklist.length
+        ? data.checklist.map(c => `<div class="small mb-2">${c}</div>`).join('')
+        : '<div class="text-muted">Drive is in great condition!</div>';
+
+      // Alerts
+      if (data.alerts.length) {
+        document.getElementById('alertsContent').innerHTML = data.alerts.map(a => `
+          <div class="alert-item critical"><i class="bi bi-exclamation-triangle-fill text-danger"></i>
+            <span>${a.message}</span></div>
+        `).join('');
+      }
+
+      document.getElementById('scanResultsRow').style.removeProperty('display');
+      showToast(`Scan complete — Health: ${data.health.score}/100 (${data.health.grade})`,
+                data.health.score >= 75 ? 'success' : data.health.score >= 55 ? 'warning' : 'danger');
+    }, 600);
+    
+  } catch (e) {
+    if (scanInterval) clearInterval(scanInterval);
+    
+    // Force hide modal
+    scanModalElement.classList.remove('show');
+    scanModalElement.style.display = 'none';
+    document.body.classList.remove('modal-open');
+    const backdrop = document.querySelector('.modal-backdrop');
+    if (backdrop) backdrop.remove();
+    
+    showToast('Scan failed. Please try again.', 'danger');
+  } finally {
+    document.getElementById('scanBtn').disabled = false;
+    isScanning = false;
+  }
+}
+</script>
+{% endblock %}

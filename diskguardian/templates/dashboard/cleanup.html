@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+{% block title %}Disk Cleanup Advisor — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-stars me-2 text-primary"></i>Disk Cleanup Advisor{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+<div class="row g-3 mb-4">
+  <div class="col-lg-12">
+    <div class="dg-card">
+      <div class="d-flex align-items-center justify-content-between mb-3">
+        <div class="fw-600" style="font-size:14px;">Storage Analysis</div>
+        <button class="btn btn-sm btn-accent" id="scanBtn" onclick="runCleanupScan()">
+          <i class="bi bi-search me-1"></i> Scan Storage
+        </button>
+      </div>
+      <div class="text-muted" style="font-size:13px; max-width:600px;">
+        DiskSense AI analyzes your user directories for temporary files, large downloaded files, and items in the Recycle Bin. 
+        <strong>Files are not automatically deleted.</strong>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="dg-card mb-4 text-center" id="loadingState" style="display:none; padding:40px;">
+  <div class="spinner-border text-primary mb-3"></div>
+  <div class="fw-600">Analyzing directories...</div>
+  <div class="text-muted small mt-2">This may take a minute if you have many files.</div>
+</div>
+
+<div id="resultsState" style="display:none;">
+  <div class="row g-3 mb-4">
+    <!-- Temp Files -->
+    <div class="col-md-4">
+      <div class="metric-card" id="tempCard" style="--card-accent:#3b82f6;">
+        <div class="metric-label">Temporary Files</div>
+        <div class="metric-value" id="tempSize">—</div>
+        <div class="metric-sub">MB</div>
+        <i class="bi bi-trash metric-icon"></i>
+      </div>
+    </div>
+    <!-- Downloads -->
+    <div class="col-md-4">
+      <div class="metric-card" id="dlCard" style="--card-accent:#f59e0b;">
+        <div class="metric-label">Downloads Folder</div>
+        <div class="metric-value" id="dlSize">—</div>
+        <div class="metric-sub">GB</div>
+        <i class="bi bi-download metric-icon"></i>
+      </div>
+    </div>
+    <!-- Recycle Bin -->
+    <div class="col-md-4">
+      <div class="metric-card" id="rbCard" style="--card-accent:#10b981;">
+        <div class="metric-label">Recycle Bin</div>
+        <div class="metric-value" id="rbSize">—</div>
+        <div class="metric-sub">MB</div>
+        <i class="bi bi-recycle metric-icon"></i>
+      </div>
+    </div>
+  </div>
+
+  <div class="dg-card">
+    <div class="fw-600 mb-3" style="font-size:14px;">Largest Files (Top 10)</div>
+    <div class="table-responsive">
+      <table class="table table-dark table-hover align-middle mb-0" style="font-size:13px;">
+        <thead>
+          <tr>
+            <th class="border-secondary text-muted">File Path</th>
+            <th class="border-secondary text-muted text-end">Size</th>
+          </tr>
+        </thead>
+        <tbody id="largeFilesList">
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+async function runCleanupScan() {
+  const btn = document.getElementById('scanBtn');
+  btn.disabled = true;
+  document.getElementById('loadingState').style.display = 'block';
+  document.getElementById('resultsState').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/cleanup');
+    const data = await res.json();
+    
+    // Convert to readable sizes
+    document.getElementById('tempSize').textContent = (data.temp_files.size_bytes / (1024*1024)).toFixed(1);
+    document.getElementById('dlSize').textContent = (data.downloads.size_bytes / (1024*1024*1024)).toFixed(2);
+    document.getElementById('rbSize').textContent = (data.recycle_bin.size_bytes / (1024*1024)).toFixed(1);
+    
+    // Highlight if issue
+    document.getElementById('tempCard').style.borderColor = data.temp_files.is_issue ? '#ef4444' : 'var(--border)';
+    document.getElementById('dlCard').style.borderColor = data.downloads.is_issue ? '#ef4444' : 'var(--border)';
+    document.getElementById('rbCard').style.borderColor = data.recycle_bin.is_issue ? '#ef4444' : 'var(--border)';
+    
+    // Build table
+    const tbody = document.getElementById('largeFilesList');
+    tbody.innerHTML = '';
+    if (!data.large_files || data.large_files.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="2" class="text-center text-muted">No files over 500MB found.</td></tr>`;
+    } else {
+      data.large_files.forEach(f => {
+        const sz = (f.size_bytes / (1024*1024*1024)).toFixed(2) + ' GB';
+        tbody.innerHTML += `
+          <tr>
+            <td class="text-truncate" style="max-width:300px;" title="${f.path}">${f.path}</td>
+            <td class="text-end fw-500">${sz}</td>
+          </tr>
+        `;
+      });
+    }
+    
+    document.getElementById('loadingState').style.display = 'none';
+    document.getElementById('resultsState').style.display = 'block';
+    showToast('Storage analysis complete', 'success');
+  } catch(e) {
+    document.getElementById('loadingState').style.display = 'none';
+    showToast('Failed to analyze storage.', 'danger');
+  } finally {
+    btn.disabled = false;
+  }
+}
+</script>
+{% endblock %}

@@ -1,0 +1,185 @@
+{% extends "base.html" %}
+{% block title %}SMART Health — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-activity me-2 text-success"></i>SMART Health Monitor{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+<!-- Drive Selector -->
+<div class="dg-card mb-4 d-flex align-items-center gap-3 flex-wrap">
+  <div class="flex-grow-1">
+    <div class="fw-600 mb-1" style="font-size:14px;">Select Drive to Inspect</div>
+    <div class="text-muted" style="font-size:12px;">Reads SMART diagnostics using WMI / pySMART with graceful fallback.</div>
+  </div>
+  <select class="form-select form-select-sm bg-dark text-light border-secondary" id="smartDrive" style="width:160px;">
+    <option value="C:">C: (Loading...)</option>
+  </select>
+  <button class="btn btn-accent btn-sm px-4" onclick="loadSmart()">
+    <i class="bi bi-activity me-1"></i> Load SMART
+  </button>
+</div>
+
+<!-- Drive Overview Cards -->
+<div class="row g-3 mb-4" id="driveOverview" style="display:none">
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#10b981;">
+      <div class="metric-label">Health Score</div>
+      <div class="metric-value" id="sm-health">—</div>
+      <div id="sm-healthLabel" class="metric-sub">—</div>
+      <i class="bi bi-heart-pulse metric-icon"></i>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#3b82f6;">
+      <div class="metric-label">Temperature</div>
+      <div class="metric-value" id="sm-temp">—</div>
+      <div class="metric-sub">Celsius</div>
+      <i class="bi bi-thermometer-half metric-icon"></i>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#8b5cf6;">
+      <div class="metric-label">Power-On Hours</div>
+      <div class="metric-value" id="sm-hours">—</div>
+      <div class="metric-sub" id="sm-hoursYears">—</div>
+      <i class="bi bi-clock-history metric-icon"></i>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#f59e0b;">
+      <div class="metric-label">Drive Type</div>
+      <div class="metric-value" id="sm-type">—</div>
+      <div class="metric-sub" id="sm-interface">—</div>
+      <i class="bi bi-hdd metric-icon"></i>
+    </div>
+  </div>
+</div>
+
+<!-- Drive Info + SMART Table -->
+<div class="row g-3" id="smartContent" style="display:none">
+  <!-- Drive Info -->
+  <div class="col-lg-4">
+    <div class="dg-card h-100">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-info-circle me-1 text-primary"></i>Drive Information</div>
+      <table class="table table-sm smart-table mb-0">
+        <tbody id="driveInfoBody"></tbody>
+      </table>
+      <div class="mt-3">
+        <div class="fw-600 mb-2" style="font-size:13px;">SSD Wear Level</div>
+        <div id="wearSection" style="display:none">
+          <div class="d-flex justify-content-between mb-1">
+            <small class="text-muted">Remaining Endurance</small>
+            <small id="wearPct" class="fw-600">—</small>
+          </div>
+          <div class="progress" style="height:10px;">
+            <div class="progress-bar" id="wearBar" style="width:0%"></div>
+          </div>
+        </div>
+        <div id="noWear" class="text-muted" style="font-size:12px;">N/A (HDD)</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- SMART Attributes Table -->
+  <div class="col-lg-8">
+    <div class="dg-card">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-table me-1 text-info"></i>SMART Attributes</div>
+      <div class="table-responsive">
+        <table class="table smart-table table-hover mb-0">
+          <thead>
+            <tr><th>ID</th><th>Attribute</th><th>Value</th><th>Raw</th><th>Status</th></tr>
+          </thead>
+          <tbody id="smartTableBody">
+            <tr><td colspan="5" class="text-center text-muted py-4">Click "Load SMART" to read attributes</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div id="dataSource" class="text-muted mt-2" style="font-size:11px;"></div>
+    </div>
+  </div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// Populate drive selector
+async function populateDrives() {
+  const r = await fetch('/api/disks');
+  const drives = await r.json();
+  const sel = document.getElementById('smartDrive');
+  sel.innerHTML = drives.map(d =>
+    `<option value="${d.device}">${d.device} ${d.drive_type}</option>`).join('');
+}
+populateDrives();
+
+async function loadSmart() {
+  const drive = document.getElementById('smartDrive').value;
+  try {
+    const r = await fetch(`/api/smart?drive=${encodeURIComponent(drive)}`);
+    const d = await r.json();
+
+    document.getElementById('driveOverview').style.display = '';
+    document.getElementById('smartContent').style.display = '';
+
+    document.getElementById('sm-health').textContent = (d.health_pct || 0) + '%';
+    document.getElementById('sm-healthLabel').textContent = d.health_label || '—';
+    document.getElementById('sm-temp').textContent   = (d.temperature || '—') + (d.temperature ? '°' : '');
+    document.getElementById('sm-hours').textContent  = (d.power_on_hours || 0).toLocaleString();
+    document.getElementById('sm-hoursYears').textContent = d.power_on_hours
+      ? `≈ ${(d.power_on_hours/8760).toFixed(1)} years` : '—';
+    document.getElementById('sm-type').textContent      = d.drive_type || '—';
+    document.getElementById('sm-interface').textContent = d.interface || '—';
+
+    // Drive info table
+    const infoRows = [
+      ['Model',    d.model    || '—'],
+      ['Serial',   d.serial   || '—'],
+      ['Firmware', d.firmware || '—'],
+      ['Capacity', d.capacity_gb ? d.capacity_gb + ' GB' : '—'],
+      ['Interface', d.interface || '—'],
+      ['Status',   d.test_passed ? '✅ PASS' : '⚠️ WARNING'],
+      ['Data Source', d.source || '—'],
+    ];
+    document.getElementById('driveInfoBody').innerHTML = infoRows.map(([k,v]) =>
+      `<tr><td class="text-muted" style="width:40%;font-size:12px;">${k}</td><td style="font-size:12px;">${v}</td></tr>`
+    ).join('');
+
+    // Wear level
+    if (d.wear_level !== null && d.wear_level !== undefined) {
+      document.getElementById('wearSection').style.display = '';
+      document.getElementById('noWear').style.display      = 'none';
+      document.getElementById('wearPct').textContent = d.wear_level + '%';
+      const bar = document.getElementById('wearBar');
+      bar.style.width = d.wear_level + '%';
+      bar.className   = 'progress-bar ' + (d.wear_level < 20 ? 'bg-danger' : d.wear_level < 50 ? 'bg-warning' : 'bg-success');
+    } else {
+      document.getElementById('wearSection').style.display = 'none';
+      document.getElementById('noWear').style.display      = '';
+    }
+
+    // SMART attributes
+    const attrs = d.attributes || {};
+    const attrKeys = Object.keys(attrs).sort();
+    document.getElementById('smartTableBody').innerHTML = attrKeys.length
+      ? attrKeys.map(k => {
+          const a = attrs[k];
+          const warn = a.raw > 0 && ['05','C5','C6'].includes(k);
+          return `<tr class="${warn ? 'table-warning' : ''}">
+            <td class="text-muted font-monospace">${k}</td>
+            <td>${a.name || ''}</td>
+            <td><span class="fw-600 ${a.value < 50 ? 'text-danger' : a.value < 80 ? 'text-warning' : 'text-success'}">${a.value}</span></td>
+            <td>${a.raw}</td>
+            <td>${a.flag || (warn ? '⚠️' : '✅')}</td>
+          </tr>`;
+        }).join('')
+      : '<tr><td colspan="5" class="text-muted text-center">No SMART attributes returned</td></tr>';
+
+    document.getElementById('dataSource').textContent =
+      `Data source: ${d.source} · Last updated: ${new Date().toLocaleTimeString()}`;
+  } catch(e) {
+    showToast('Failed to load SMART data', 'danger');
+  }
+}
+</script>
+{% endblock %}

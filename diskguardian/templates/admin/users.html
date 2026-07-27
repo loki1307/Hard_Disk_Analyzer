@@ -1,0 +1,104 @@
+{% extends "base.html" %}
+{% block title %}Manage Users — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-people me-2 text-primary"></i>Manage Users{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+  <!-- Flash messages -->
+  {% with messages = get_flashed_messages(with_categories=true) %}
+    {% for cat, msg in messages %}
+    <div class="alert alert-{{ cat }} alert-dismissible fade show mb-3" style="font-size:13px;">
+      {{ msg }}
+      <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+    {% endfor %}
+  {% endwith %}
+
+  <div class="dg-card">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+      <span class="fw-600" style="font-size:14px;">All Users ({{ users|length }})</span>
+      <a href="{{ url_for('admin.index') }}" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-arrow-left me-1"></i>Back to Admin
+      </a>
+    </div>
+    <div class="table-responsive">
+      <table class="table smart-table table-hover mb-0">
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>User</th>
+            <th>Email</th>
+            <th>Role</th>
+            <th>Provider</th>
+            <th>Scans</th>
+            <th>Joined</th>
+            <th>Last Login</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for u in users %}
+          <tr class="{{ 'opacity-50' if not u.is_active_acc else '' }}">
+            <td class="text-muted">{{ u.id }}</td>
+            <td>
+              <div class="d-flex align-items-center gap-2">
+                {% if u.avatar_url %}
+                  <img src="{{ u.avatar_url }}" width="28" height="28" class="rounded-circle"/>
+                {% else %}
+                  <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center fw-700"
+                       style="width:28px;height:28px;font-size:12px;">
+                    {{ u.display_name[0].upper() }}
+                  </div>
+                {% endif %}
+                <span class="fw-600" style="font-size:13px;">{{ u.display_name }}</span>
+              </div>
+            </td>
+            <td class="text-muted" style="font-size:12px;">{{ u.email }}</td>
+            <td>
+              <span class="badge bg-{{ 'danger' if u.role=='admin' else 'info' if u.role=='technician' else 'secondary' }}">
+                {{ u.role|title }}
+              </span>
+            </td>
+            <td>
+              <span class="badge bg-{{ 'primary' if u.oauth_provider=='google' else 'dark' if u.oauth_provider=='github' else 'secondary' }}">
+                <i class="bi bi-{{ 'google' if u.oauth_provider=='google' else 'github' if u.oauth_provider=='github' else 'person-lock' }} me-1"></i>
+                {{ u.oauth_provider|title if u.oauth_provider else 'Local' }}
+              </span>
+            </td>
+            <td class="text-center">{{ u.scan_results.count() }}</td>
+            <td class="text-muted" style="font-size:11px;">
+              {{ u.created_at.strftime('%Y-%m-%d') if u.created_at else '—' }}
+            </td>
+            <td class="text-muted" style="font-size:11px;">
+              {{ u.last_login.strftime('%Y-%m-%d %H:%M') if u.last_login else 'Never' }}
+            </td>
+            <td>
+              {% if u.is_active_acc %}
+                <span class="badge bg-success">Active</span>
+              {% else %}
+                <span class="badge bg-danger">Disabled</span>
+              {% endif %}
+            </td>
+            <td>
+              {% if u.id != current_user.id %}
+              <form method="POST" action="{{ url_for('admin.toggle_user', uid=u.id) }}" style="display:inline;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+                {% if u.is_active_acc %}
+                  <button type="submit" class="btn btn-sm py-0 px-2 btn-outline-danger" onclick="return confirm('Disable this user?')">Disable</button>
+                {% else %}
+                  <button type="submit" class="btn btn-sm py-0 px-2 btn-outline-success" onclick="return confirm('Enable this user?')">Enable</button>
+                {% endif %}
+              </form>
+              {% else %}
+                <span class="text-muted" style="font-size:11px;">(you)</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endblock %}

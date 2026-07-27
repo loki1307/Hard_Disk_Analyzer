@@ -1,0 +1,250 @@
+{% extends "base.html" %}
+{% block title %}Settings — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-gear me-2"></i>Settings{% endblock %}
+
+{% block content %}
+<div class="fade-in row g-3">
+
+  <!-- Profile Card -->
+  <div class="col-lg-5">
+    <div class="dg-card">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-person me-1 text-primary"></i>Profile</div>
+      <div class="d-flex align-items-center gap-3 mb-4">
+        {% if current_user.avatar_url %}
+        <img src="{{ current_user.avatar_url }}" width="64" height="64" class="rounded-circle border border-secondary">
+        {% else %}
+        <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width:64px;height:64px;font-size:24px;font-weight:800;">
+          {{ current_user.display_name[0].upper() }}
+        </div>
+        {% endif %}
+        <div>
+          <div class="fw-600">{{ current_user.display_name }}</div>
+          <div class="text-muted" style="font-size:12px;">{{ current_user.email }}</div>
+          <div class="mt-1">
+            <span class="badge bg-{{ 'danger' if current_user.role=='admin' else 'primary' }}">{{ current_user.role|title }}</span>
+            <span class="badge bg-{{ 'success' if current_user.oauth_provider else 'secondary' }} ms-1">
+              {{ current_user.oauth_provider|title if current_user.oauth_provider else 'Local Account' }}
+            </span>
+          </div>
+        </div>
+      </div>
+      <dl class="row mb-0" style="font-size:13px;">
+        <dt class="col-5 text-muted">Member since</dt>
+        <dd class="col-7">{{ current_user.created_at.strftime('%B %d, %Y') if current_user.created_at else '—' }}</dd>
+        <dt class="col-5 text-muted">Last login</dt>
+        <dd class="col-7">{{ current_user.last_login.strftime('%Y-%m-%d %H:%M') if current_user.last_login else '—' }}</dd>
+        <dt class="col-5 text-muted">Last scan</dt>
+        <dd class="col-7">{{ current_user.last_scan.strftime('%Y-%m-%d %H:%M') if current_user.last_scan else 'Never' }}</dd>
+        <dt class="col-5 text-muted">Role</dt>
+        <dd class="col-7">{{ current_user.role|title }}</dd>
+      </dl>
+    </div>
+
+    <!-- System Info -->
+    <div class="dg-card mt-3">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-pc-display me-1 text-info"></i>System Information</div>
+      <div id="sysInfoTable" class="text-muted" style="font-size:13px;">Loading...</div>
+    </div>
+  </div>
+
+  <div class="col-lg-7">
+    <!-- Appearance -->
+    <div class="dg-card mb-3">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-palette me-1 text-warning"></i>Appearance</div>
+      <label class="form-label text-muted" style="font-size:12px;">Theme</label>
+      <div class="d-flex gap-2 mb-3">
+        <button class="btn btn-sm btn-outline-secondary flex-grow-1" id="darkBtn" onclick="setTheme('dark')">
+          <i class="bi bi-moon-stars me-1"></i>Dark Mode
+        </button>
+        <button class="btn btn-sm btn-outline-secondary flex-grow-1" id="lightBtn" onclick="setTheme('light')">
+          <i class="bi bi-sun me-1"></i>Light Mode
+        </button>
+      </div>
+    </div>
+
+    <!-- Preferences -->
+    <div class="dg-card mb-3">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-toggles me-1 text-success"></i>Preferences</div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="autoRefresh" onchange="savePref('auto_refresh', this.checked)">
+        <label class="form-check-label" for="autoRefresh" style="font-size:13px;">
+          <span class="fw-500">Auto-refresh metrics</span>
+          <small class="text-muted d-block">Update CPU/RAM/Disk metrics every second</small>
+        </label>
+      </div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="notificationsEnabled" onchange="savePref('notifications_enabled', this.checked)">
+        <label class="form-check-label" for="notificationsEnabled" style="font-size:13px;">
+          <span class="fw-500">Desktop Notifications</span>
+          <small class="text-muted d-block">Show browser alerts for health warnings</small>
+        </label>
+      </div>
+      <div class="form-check form-switch mb-3">
+        <input class="form-check-input" type="checkbox" id="emailAlerts" onchange="savePref('email_alerts', this.checked)">
+        <label class="form-check-label" for="emailAlerts" style="font-size:13px;">
+          <span class="fw-500">Email Alerts</span>
+          <small class="text-muted d-block">Receive critical alerts at {{ current_user.email }}</small>
+        </label>
+      </div>
+      <div class="mt-3 pt-3 border-top border-secondary">
+        <label class="form-label text-muted" style="font-size:12px;">Auto-Scan Interval</label>
+        <select class="form-select form-select-sm bg-dark text-light border-secondary w-auto"
+                id="scanInterval" onchange="savePref('scan_interval_hours', parseInt(this.value))">
+          <option value="0">Disabled</option>
+          <option value="6">Every 6 hours</option>
+          <option value="12">Every 12 hours</option>
+          <option value="24">Daily</option>
+          <option value="168">Weekly</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- Change Password (local accounts only) -->
+    {% if not current_user.oauth_provider %}
+    <div class="dg-card mb-3">
+      <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-key me-1 text-danger"></i>Change Password</div>
+      <form method="POST" action="/auth/change-password">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+        <div class="mb-2">
+          <input type="password" name="current" class="form-control form-control-sm bg-dark text-light border-secondary"
+                 placeholder="Current password" required>
+        </div>
+        <div class="mb-2">
+          <input type="password" name="password" id="newpw" class="form-control form-control-sm bg-dark text-light border-secondary"
+                 placeholder="New password (min 8 chars)" required minlength="8" oninput="checkPw(this.value)">
+          <div class="progress mt-1" style="height:3px;">
+            <div class="progress-bar" id="pwBar" style="width:0%;transition:all 0.3s;"></div>
+          </div>
+        </div>
+        <div class="mb-3">
+          <input type="password" name="confirm" class="form-control form-control-sm bg-dark text-light border-secondary"
+                 placeholder="Confirm new password" required>
+        </div>
+        <button type="submit" class="btn btn-sm btn-outline-danger">Update Password</button>
+      </form>
+    </div>
+    {% endif %}
+
+    <!-- Danger Zone -->
+    <div class="dg-card border-danger" style="border-color:rgba(239,68,68,0.3)!important;">
+      <div class="fw-600 mb-3 text-danger" style="font-size:14px;"><i class="bi bi-exclamation-triangle me-1"></i>Danger Zone</div>
+      <div class="d-flex align-items-center justify-content-between">
+        <div>
+          <div style="font-size:13px;font-weight:500;">Clear All Scan History</div>
+          <div class="text-muted" style="font-size:12px;">Permanently delete all stored scans and snapshots</div>
+        </div>
+        <button class="btn btn-sm btn-outline-danger" onclick="clearHistory()">Clear History</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+// ── Load settings from DB on page load ────────────────────────────────────────
+async function loadSettings() {
+  try {
+    const r = await fetch('/api/me/settings');
+    const s = await r.json();
+
+    document.getElementById('autoRefresh').checked         = s.auto_refresh         !== false;
+    document.getElementById('notificationsEnabled').checked = s.notifications_enabled !== false;
+    document.getElementById('emailAlerts').checked         = s.email_alerts          === true;
+    const interval = document.getElementById('scanInterval');
+    interval.value = s.scan_interval_hours || 0;
+  } catch {}
+}
+loadSettings();
+
+// ── Load system info ───────────────────────────────────────────────────────────
+async function loadSysInfo() {
+  try {
+    const r = await fetch('/api/system/info');
+    const d = await r.json();
+    document.getElementById('sysInfoTable').innerHTML = [
+      ['Operating System', d.os],
+      ['Hostname',         d.hostname],
+      ['Processor',        d.processor],
+      ['Architecture',     d.machine],
+      ['Python Version',   d.python],
+      ['Uptime',           d.uptime],
+    ].map(([k,v]) =>
+      `<div class="d-flex justify-content-between py-1 border-bottom border-secondary" style="font-size:12px;">
+         <span class="text-muted">${k}</span><span class="fw-500">${v || '—'}</span>
+       </div>`
+    ).join('');
+  } catch {
+    document.getElementById('sysInfoTable').textContent = 'Could not load system info.';
+  }
+}
+loadSysInfo();
+
+// ── Save a single preference ───────────────────────────────────────────────────
+async function savePref(key, value) {
+  try {
+    const r = await fetch('/api/me/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ [key]: value })
+    });
+    const d = await r.json();
+    if (d.ok) showToast('Preference saved', 'success');
+    // Request notifications permission if enabled
+    if (key === 'notifications_enabled' && value && Notification.permission === 'default') {
+      Notification.requestPermission();
+    }
+  } catch {
+    showToast('Could not save preference', 'danger');
+  }
+}
+
+// ── Theme ─────────────────────────────────────────────────────────────────────
+function setTheme(t) {
+  document.documentElement.setAttribute('data-bs-theme', t);
+  localStorage.setItem('dg_theme', t);
+  // Highlight active button
+  document.getElementById('darkBtn').classList.toggle('btn-primary', t === 'dark');
+  document.getElementById('darkBtn').classList.toggle('btn-outline-secondary', t !== 'dark');
+  document.getElementById('lightBtn').classList.toggle('btn-primary', t === 'light');
+  document.getElementById('lightBtn').classList.toggle('btn-outline-secondary', t !== 'light');
+  savePref('theme', t);
+}
+// Set active button state on load
+const currentTheme = localStorage.getItem('dg_theme') || 'dark';
+setTheme(currentTheme);
+
+// ── Password strength ─────────────────────────────────────────────────────────
+function checkPw(pw) {
+  let score = 0;
+  if (pw.length >= 8)  score++;
+  if (pw.length >= 12) score++;
+  if (/[A-Z]/.test(pw)) score++;
+  if (/[0-9]/.test(pw)) score++;
+  if (/[^A-Za-z0-9]/.test(pw)) score++;
+  const colors = ['#ef4444','#f59e0b','#f59e0b','#10b981','#10b981'];
+  const bar = document.getElementById('pwBar');
+  bar.style.width     = (score * 20) + '%';
+  bar.style.background = colors[score - 1] || '#ef4444';
+}
+
+// ── Clear history ─────────────────────────────────────────────────────────────
+async function clearHistory() {
+  if (!confirm('Delete ALL scan history? This cannot be undone.')) return;
+  try {
+    const r = await fetch('/api/history/clear', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json',
+                 'X-CSRFToken': document.querySelector('meta[name="csrf-token"]')?.content || '' }
+    });
+    if (r.ok) {
+      showToast('Scan history cleared', 'success');
+    } else {
+      showToast('Could not clear history', 'danger');
+    }
+  } catch {
+    showToast('Error clearing history', 'danger');
+  }
+}
+</script>
+{% endblock %}

@@ -159,14 +159,14 @@ def create_app():
 
         if user is None:
             user = User(
-                provider=provider,
-                provider_id=str(provider_id),
-                name=name,
-                email=email,
-                avatar_url=avatar_url,
-                first_login=now,
-                last_login=now,
-                login_count=1,
+                provider=provider,  # type: ignore
+                provider_id=str(provider_id),  # type: ignore
+                name=name,  # type: ignore
+                email=email,  # type: ignore
+                avatar_url=avatar_url,  # type: ignore
+                first_login=now,  # type: ignore
+                last_login=now,  # type: ignore
+                login_count=1,  # type: ignore
             )
             db.session.add(user)
         else:
@@ -179,11 +179,11 @@ def create_app():
 
         # Audit log
         event = LoginEvent(
-            user=user,
-            provider=provider,
-            ip_address=request.remote_addr,
-            user_agent=request.user_agent.string[:512] if request.user_agent else None,
-            timestamp=now,
+            user=user,  # type: ignore
+            provider=provider,  # type: ignore
+            ip_address=request.remote_addr,  # type: ignore
+            user_agent=request.user_agent.string[:512] if request.user_agent else None,  # type: ignore
+            timestamp=now,  # type: ignore
         )
         db.session.add(event)
         db.session.commit()

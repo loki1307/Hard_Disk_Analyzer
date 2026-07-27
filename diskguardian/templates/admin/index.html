@@ -1,0 +1,96 @@
+{% extends "base.html" %}
+{% block title %}Admin Panel — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-shield-check me-2 text-danger"></i>Admin Panel{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+<!-- Stats Row -->
+<div class="row g-3 mb-4">
+  {% for label, val, icon, color in [
+    ('Total Users',   stats.total_users,   'bi-people',      '#3b82f6'),
+    ('Total Scans',   stats.total_scans,   'bi-search',      '#10b981'),
+    ('Active Alerts', stats.active_alerts, 'bi-bell',        '#f59e0b'),
+    ('Google Users',  stats.google_users,  'bi-google',      '#ea4335'),
+    ('GitHub Users',  stats.github_users,  'bi-github',      '#6366f1'),
+    ('Local Users',   stats.local_users,   'bi-person-lock', '#8b5cf6'),
+  ] %}
+  <div class="col-6 col-md-2">
+    <div class="metric-card" {{ ('style="--card-accent:' ~ color ~ ';"') | safe }}>
+      <div class="metric-label">{{ label }}</div>
+      <div class="metric-value">{{ val }}</div>
+      <i class="{{ icon }} metric-icon"></i>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+
+<!-- Users Table -->
+<div class="dg-card mb-4">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-600" style="font-size:14px;">All Users ({{ users|length }})</span>
+    <a href="{{ url_for('admin.users') }}" class="btn btn-sm btn-outline-secondary">Manage Users</a>
+  </div>
+  <div class="table-responsive">
+    <table class="table smart-table table-hover mb-0">
+      <thead>
+        <tr><th>#</th><th>User</th><th>Email</th><th>Role</th><th>Provider</th><th>Last Login</th><th>Scans</th><th>Status</th></tr>
+      </thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td class="text-muted">{{ u.id }}</td>
+          <td>
+            <div class="d-flex align-items-center gap-2">
+              {% if u.avatar_url %}
+              <img src="{{ u.avatar_url }}" width="24" height="24" class="rounded-circle"/>
+              {% else %}
+              <div class="rounded-circle bg-primary d-flex align-items-center justify-content-center" style="width:24px;height:24px;font-size:11px;">{{ u.display_name[0].upper() }}</div>
+              {% endif %}
+              {{ u.display_name }}
+            </div>
+          </td>
+          <td class="text-muted" style="font-size:12px;">{{ u.email }}</td>
+          <td><span class="badge bg-{{ 'danger' if u.role=='admin' else 'primary' }}">{{ u.role }}</span></td>
+          <td><span class="badge bg-secondary">{{ u.oauth_provider or 'local' }}</span></td>
+          <td class="text-muted" style="font-size:11px;">{{ u.last_login.strftime('%Y-%m-%d') if u.last_login else 'Never' }}</td>
+          <td>{{ u.scan_results.count() }}</td>
+          <td>
+            {% if u.id != current_user.id %}
+            <form method="POST" action="{{ url_for('admin.toggle_user', uid=u.id) }}" style="display:inline;">
+              <input type="hidden" name="csrf_token" value="{{ csrf_token() }}"/>
+              <button type="submit" class="btn btn-xs btn-sm py-0 px-2 btn-outline-{{ 'danger' if u.is_active_acc else 'success' }}">
+                {{ 'Disable' if u.is_active_acc else 'Enable' }}
+              </button>
+            </form>
+            {% else %}
+            <span class="text-muted" style="font-size:11px;">(you)</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Recent Logins -->
+<div class="dg-card">
+  <div class="fw-600 mb-3" style="font-size:14px;">Recent Login Events</div>
+  <div class="table-responsive">
+    <table class="table smart-table table-hover mb-0" style="font-size:12px;">
+      <thead><tr><th>User</th><th>Provider</th><th>IP</th><th>Time</th></tr></thead>
+      <tbody>
+        {% for ev in recent_events %}
+        <tr>
+          <td>{{ ev.user.display_name if ev.user else '—' }}</td>
+          <td><span class="badge bg-secondary">{{ ev.provider }}</span></td>
+          <td class="text-muted font-monospace">{{ ev.ip_address or '—' }}</td>
+          <td class="text-muted">{{ ev.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+</div>
+{% endblock %}

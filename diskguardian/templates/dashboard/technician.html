@@ -1,0 +1,112 @@
+{% extends "base.html" %}
+{% block title %}Technician Mode — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-tools me-2 text-warning"></i>Technician Mode{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+<div class="dg-card mb-3 border-warning" style="border-color:rgba(245,158,11,0.3)!important;">
+  <div class="d-flex align-items-center gap-2">
+    <i class="bi bi-shield-exclamation text-warning" style="font-size:20px;"></i>
+    <div>
+      <div class="fw-600" style="font-size:13px;">Technician / Expert Mode</div>
+      <div class="text-muted" style="font-size:12px;">Full diagnostic view with raw SMART values, complete attribute table, and printable report.</div>
+    </div>
+    <div class="ms-auto d-flex gap-2">
+      <select class="form-select form-select-sm bg-dark text-light border-secondary" id="techDrive" style="width:130px;"></select>
+      <button class="btn btn-warning btn-sm" onclick="loadTech()"><i class="bi bi-cpu me-1"></i>Load Full Diagnostic</button>
+      <button class="btn btn-outline-secondary btn-sm" onclick="window.print()"><i class="bi bi-printer me-1"></i>Print</button>
+    </div>
+  </div>
+</div>
+
+<div id="techContent" style="display:none;">
+<!-- Summary -->
+<div class="row g-3 mb-3" id="techSummary"></div>
+
+<!-- Full SMART Table -->
+<div class="dg-card mb-3">
+  <div class="fw-600 mb-3" style="font-size:14px;"><i class="bi bi-table me-1"></i>Complete SMART Attribute Table</div>
+  <div class="table-responsive">
+    <table class="table smart-table table-hover font-monospace" style="font-size:12px;">
+      <thead>
+        <tr><th>#</th><th>ID</th><th>Attribute Name</th><th>Value</th><th>Threshold</th><th>Raw Value</th><th>Status</th></tr>
+      </thead>
+      <tbody id="techTable"></tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Raw JSON -->
+<div class="dg-card">
+  <div class="d-flex justify-content-between align-items-center mb-2">
+    <div class="fw-600" style="font-size:14px;"><i class="bi bi-braces me-1"></i>Raw Diagnostic Data</div>
+    <button class="btn btn-sm btn-outline-secondary" onclick="copyRaw()"><i class="bi bi-clipboard me-1"></i>Copy</button>
+  </div>
+  <pre id="rawJson" style="background:#0f172a;border-radius:8px;padding:16px;font-size:11px;max-height:300px;overflow-y:auto;color:#a3e635;"></pre>
+</div>
+</div>
+
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/disks').then(r=>r.json()).then(drives=>{
+  document.getElementById('techDrive').innerHTML = drives.map(d=>
+    `<option value="${d.device}">${d.device}</option>`).join('');
+}).catch(()=>{});
+
+async function loadTech() {
+  const drive = document.getElementById('techDrive').value;
+  try {
+    const r = await fetch(`/api/smart?drive=${encodeURIComponent(drive)}`);
+    const d = await r.json();
+
+    document.getElementById('techContent').style.display = '';
+
+    // Summary cards
+    document.getElementById('techSummary').innerHTML = [
+      ['Model',    d.model || '—',  'bi-hdd',       '#3b82f6'],
+      ['Serial',   d.serial || '—', 'bi-upc-scan',  '#8b5cf6'],
+      ['Health',   (d.health_pct||0)+'%', 'bi-heart-pulse', '#10b981'],
+      ['Temp',     (d.temperature||'—')+(d.temperature?'°C':''), 'bi-thermometer', '#f59e0b'],
+      ['Hours',    (d.power_on_hours||0)+' h', 'bi-clock', '#6366f1'],
+      ['Source',   d.source||'—',   'bi-database',  '#64748b'],
+    ].map(([label, val, icon, color]) => `
+      <div class="col-6 col-md-2">
+        <div class="metric-card" style="--card-accent:${color};">
+          <div class="metric-label">${label}</div>
+          <div style="font-size:14px;font-weight:700;margin:4px 0;">${val}</div>
+        </div>
+      </div>
+    `).join('');
+
+    // Full attribute table
+    const attrs = d.attributes || {};
+    let i = 1;
+    document.getElementById('techTable').innerHTML = Object.entries(attrs).map(([id, a]) => {
+      const warn = a.raw > 0 && ['05','C5','C6','BB'].includes(id);
+      return `<tr class="${warn ? 'table-warning' : ''}">
+        <td class="text-muted">${i++}</td>
+        <td class="text-primary">0x${id}</td>
+        <td>${a.name || id}</td>
+        <td class="fw-700 ${a.value < 50 ? 'text-danger' : a.value < 80 ? 'text-warning' : 'text-success'}">${a.value}</td>
+        <td class="text-muted">—</td>
+        <td class="text-light">${a.raw}</td>
+        <td>${warn ? '<span class="badge bg-warning text-dark">WARNING</span>' : '<span class="badge bg-success">OK</span>'}</td>
+      </tr>`;
+    }).join('') || '<tr><td colspan="7" class="text-muted text-center">No attributes</td></tr>';
+
+    document.getElementById('rawJson').textContent = JSON.stringify(d, null, 2);
+    showToast('Diagnostic data loaded', 'success');
+  } catch(e) {
+    showToast('Failed to load diagnostic data', 'danger');
+  }
+}
+
+function copyRaw() {
+  navigator.clipboard.writeText(document.getElementById('rawJson').textContent)
+    .then(() => showToast('Copied to clipboard', 'success'));
+}
+</script>
+{% endblock %}
