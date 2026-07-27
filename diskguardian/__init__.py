@@ -72,9 +72,9 @@ def create_app(config_name: str | None = None) -> Flask:
     config_name = config_name or os.environ.get("FLASK_ENV", "development")
     app.config.from_object(get_config(config_name))
 
-    # Force the DB to our canonical path — override any env DATABASE_URL for SQLite
+    # Force the DB to our canonical SQLite path — only when no external DB is configured
     uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-    if not uri or uri.startswith("sqlite"):
+    if not uri or (uri.startswith("sqlite") and not os.environ.get("DATABASE_URL")):
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
 
     # Initialize extensions
