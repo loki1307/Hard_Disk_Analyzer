@@ -9,7 +9,7 @@ from authlib.integrations.flask_client import OAuth
 
 from . import auth_bp
 from ..extensions import db, limiter
-from ..models import User, LoginEvent, PasswordResetToken
+from ..models import User, Sessions, PasswordResetToken
 
 oauth = OAuth()
 _oauth_configured = False
@@ -44,7 +44,7 @@ def _get_oauth():
 
 def _record_login(user: User, provider: str = "local"):
     user.last_login = datetime.now(timezone.utc)
-    event = LoginEvent(
+    event = Sessions(
         user_id=user.id,  # type: ignore
         provider=provider,  # type: ignore
         ip_address=request.remote_addr,  # type: ignore
@@ -150,9 +150,15 @@ def register():
 @auth_bp.route("/logout", methods=["GET", "POST"])
 @login_required
 def logout():
+    from flask import make_response
     logout_user()
+    session.clear()
     flash("You've been signed out.", "info")
-    return redirect(url_for("auth.login"))
+    response = make_response(redirect(url_for("auth.login")))
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
+    response.headers["Expires"] = "0"
+    return response
 
 
 
@@ -209,6 +215,9 @@ def reset_password(token: str):
 @limiter.limit("10 per minute")
 def google_login():
     o = _get_oauth()
+    if not hasattr(o, "google") or not getattr(o, "google"):
+        flash("Google Login is not configured.", "warning")
+        return redirect(url_for("auth.login"))
     ru = url_for("auth.google_callback", _external=True)
     return o.google.authorize_redirect(ru)
 
@@ -237,6 +246,9 @@ def google_callback():
 @limiter.limit("10 per minute")
 def github_login():
     o  = _get_oauth()
+    if not hasattr(o, "github") or not getattr(o, "github"):
+        flash("GitHub Login is not configured.", "warning")
+        return redirect(url_for("auth.login"))
     ru = url_for("auth.github_callback", _external=True)
     return o.github.authorize_redirect(ru)
 

@@ -9,4 +9,8 @@ load_dotenv()
 
 from diskguardian import create_app
 
-app = application = create_app(os.environ.get("FLASK_ENV", "production"))
+app = create_app(os.environ.get("FLASK_ENV", "production"))
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 10000))
+    app.run(host="0.0.0.0", port=port, debug=False)

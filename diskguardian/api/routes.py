@@ -9,7 +9,7 @@ import io
 
 from . import api_bp
 from ..extensions import db, limiter
-from ..models import ScanResult, SystemSnapshot, Alert
+from ..models import ScanHistory, SystemLogs, Notifications
 from ..services import system_service as sys_svc
 from ..services import smart_service   as smart_svc
 from ..services import ai_service      as ai_svc
@@ -85,7 +85,7 @@ def api_scan():
     risk   = ai_svc.predict_risk(smart)
 
     # Save scan result
-    result = ScanResult(
+    result = ScanHistory(
         user_id      = current_user.id,  # type: ignore
         drive_path   = drive,  # type: ignore
         drive_model  = smart.get("model"),  # type: ignore
@@ -101,7 +101,7 @@ def api_scan():
     result._ai_summary = health.get("grade", "")
 
     # Save snapshot
-    snap = SystemSnapshot(
+    snap = SystemLogs(
         user_id     = current_user.id,  # type: ignore
         cpu_percent = system["cpu"]["percent"],  # type: ignore
         ram_percent = system["ram"]["percent"],  # type: ignore
@@ -113,15 +113,15 @@ def api_scan():
     # Generate alerts
     alerts = []
     if smart.get("temperature", 0) > 55:
-        alerts.append(Alert(user_id=current_user.id, type="temperature",  # type: ignore
+        alerts.append(Notifications(user_id=current_user.id, type="temperature",  # type: ignore
                             message=f"Drive temperature critical: {smart['temperature']}°C",  # type: ignore
                             severity="critical"))  # type: ignore
     if smart.get("reallocated_sectors", 0) > 0:
-        alerts.append(Alert(user_id=current_user.id, type="smart",  # type: ignore
+        alerts.append(Notifications(user_id=current_user.id, type="smart",  # type: ignore
                             message=f"{smart['reallocated_sectors']} reallocated sector(s) — physical damage detected.",  # type: ignore
                             severity="critical"))  # type: ignore
     if health["score"] < 60:
-        alerts.append(Alert(user_id=current_user.id, type="health",  # type: ignore
+        alerts.append(Notifications(user_id=current_user.id, type="health",  # type: ignore
                             message=f"Drive health critical: {health['score']}/100",  # type: ignore
                             severity="critical"))  # type: ignore
 
@@ -155,9 +155,9 @@ def api_benchmark():
     result  = bench_svc.run_benchmark(drive, size_mb)
 
     # Update last scan result with benchmark data
-    last = (ScanResult.query
+    last = (ScanHistory.query
             .filter_by(user_id=current_user.id)
-            .order_by(ScanResult.timestamp.desc())
+            .order_by(ScanHistory.timestamp.desc())
             .first())
     if last:
         last.set_benchmark(result)
@@ -198,7 +198,7 @@ def api_ai_chat():
 @api_bp.route("/report/<int:scan_id>/<fmt>")
 @login_required
 def api_report(scan_id: int, fmt: str):
-    scan = ScanResult.query.filter_by(id=scan_id, user_id=current_user.id).first_or_404()
+    scan = ScanHistory.query.filter_by(id=scan_id, user_id=current_user.id).first_or_404()
     smart  = scan.get_smart()
     health = ai_svc.calculate_health_score(smart)
     risk   = ai_svc.predict_risk(smart)
@@ -234,14 +234,14 @@ def api_report(scan_id: int, fmt: str):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-#  Alerts
+#  Notificationss
 # ─────────────────────────────────────────────────────────────────────────────
 @api_bp.route("/alerts")
 @login_required
 def api_alerts():
-    alerts = (Alert.query
+    alerts = (Notifications.query
               .filter_by(user_id=current_user.id)
-              .order_by(Alert.created_at.desc())
+              .order_by(Notifications.created_at.desc())
               .limit(20).all())
     return jsonify([a.to_dict() for a in alerts])
 
@@ -249,7 +249,7 @@ def api_alerts():
 @api_bp.route("/alerts/<int:alert_id>/read", methods=["POST"])
 @login_required
 def api_alert_read(alert_id: int):
-    alert = Alert.query.filter_by(id=alert_id, user_id=current_user.id).first_or_404()
+    alert = Notifications.query.filter_by(id=alert_id, user_id=current_user.id).first_or_404()
     alert.read = True
     db.session.commit()
     return jsonify({"ok": True})
@@ -267,9 +267,9 @@ def api_me():
 @api_bp.route("/history")
 @login_required
 def api_history():
-    scans = (ScanResult.query
+    scans = (ScanHistory.query
              .filter_by(user_id=current_user.id)
-             .order_by(ScanResult.timestamp.desc())
+             .order_by(ScanHistory.timestamp.desc())
              .limit(30).all())
     return jsonify([s.to_dict() for s in scans])
 
@@ -278,17 +278,17 @@ def api_history():
 @login_required
 def api_history_clear():
     """Delete all scan history and snapshots for the current user."""
-    ScanResult.query.filter_by(user_id=current_user.id).delete()
-    SystemSnapshot.query.filter_by(user_id=current_user.id).delete()
+    ScanHistory.query.filter_by(user_id=current_user.id).delete()
+    SystemLogs.query.filter_by(user_id=current_user.id).delete()
     db.session.commit()
     return jsonify({"ok": True, "message": "Scan history cleared."})
 
 @api_bp.route("/snapshots")
 @login_required
 def api_snapshots():
-    snaps = (SystemSnapshot.query
+    snaps = (SystemLogs.query
              .filter_by(user_id=current_user.id)
-             .order_by(SystemSnapshot.timestamp.desc())
+             .order_by(SystemLogs.timestamp.desc())
              .limit(60).all())
     return jsonify([{
         "t":    s.timestamp.isoformat(),
@@ -328,7 +328,7 @@ def api_get_settings():
 @login_required
 def api_alert_dismiss(alert_id: int):
     """Dismiss (mark read) an alert."""
-    alert = Alert.query.filter_by(id=alert_id, user_id=current_user.id).first_or_404()
+    alert = Notifications.query.filter_by(id=alert_id, user_id=current_user.id).first_or_404()
     alert.read = True
     db.session.commit()
     return jsonify({"ok": True})
@@ -338,7 +338,7 @@ def api_alert_dismiss(alert_id: int):
 @login_required
 def api_alerts_dismiss_all():
     """Mark all user alerts as read."""
-    Alert.query.filter_by(user_id=current_user.id, read=False).update({"read": True})
+    Notifications.query.filter_by(user_id=current_user.id, read=False).update({"read": True})
     db.session.commit()
     return jsonify({"ok": True})
 

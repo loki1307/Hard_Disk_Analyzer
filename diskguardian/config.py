@@ -47,16 +47,12 @@ class DevelopmentConfig(BaseConfig):
 
 class ProductionConfig(BaseConfig):
     DEBUG = False
-    SQLALCHEMY_DATABASE_URI = os.environ.get("DATABASE_URL", "")
+    _db_url = os.environ.get("DATABASE_URL", "")
+    if _db_url.startswith("postgres://"):
+        _db_url = _db_url.replace("postgres://", "postgresql://", 1)
+    SQLALCHEMY_DATABASE_URI = _db_url or f"sqlite:///{BASE_DIR / 'diskguardian.db'}"
     SESSION_COOKIE_SECURE   = True
     WTF_CSRF_ENABLED        = True
-
-    # Fix Railway/Render postgres:// prefix
-    @classmethod
-    def init_app(cls, app):
-        url = app.config.get("SQLALCHEMY_DATABASE_URI", "")
-        if url.startswith("postgres://"):
-            app.config["SQLALCHEMY_DATABASE_URI"] = url.replace("postgres://", "postgresql://", 1)
 
 
 class TestingConfig(BaseConfig):

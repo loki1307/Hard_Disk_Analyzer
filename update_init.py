@@ -1,5 +1,20 @@
-# -*- coding: utf-8 -*-
-"""diskguardian/__init__.py — Application factory for AI Disk Guardian Pro."""
+import os
+
+with open('diskguardian/__init__.py', 'r', encoding='utf-8') as f:
+    content = f.read()
+
+# We need to add Migrate to extensions
+# First check if migrate is already in extensions.py
+with open('diskguardian/extensions.py', 'r', encoding='utf-8') as f:
+    ext_content = f.read()
+if 'Migrate(' not in ext_content:
+    with open('diskguardian/extensions.py', 'w', encoding='utf-8') as f:
+        f.write(ext_content.replace('from flask_sqlalchemy import SQLAlchemy', 'from flask_sqlalchemy import SQLAlchemy\nfrom flask_migrate import Migrate'))
+        f.write('\n\nmigrate = Migrate()\n')
+
+# Now rewrite diskguardian/__init__.py
+new_init = """# -*- coding: utf-8 -*-
+\"\"\"diskguardian/__init__.py — Application factory for AI Disk Guardian Pro.\"\"\"
 
 import os
 import logging
@@ -16,7 +31,7 @@ from .config import get_config, BASE_DIR
 DB_PATH = BASE_DIR / "diskguardian.db"
 
 def init_db(app):
-    """Robust database initialization"""
+    \"\"\"Robust database initialization\"\"\"
     from .models import User
     
     with app.app_context():
@@ -101,17 +116,17 @@ def create_app(config_name: str | None = None) -> Flask:
 
     @app.errorhandler(500)
     def err_500(e):
-        app.logger.error(f"500 Internal Server Error: {e}\n{traceback.format_exc()}")
+        app.logger.error(f"500 Internal Server Error: {e}\\n{traceback.format_exc()}")
         return render_template("errors/500.html"), 500
 
     @app.errorhandler(SQLAlchemyError)
     def handle_db_error(e):
-        app.logger.error(f"Database Error: {e}\n{traceback.format_exc()}")
+        app.logger.error(f"Database Error: {e}\\n{traceback.format_exc()}")
         return render_template("errors/500.html"), 500
 
     @app.errorhandler(Exception)
     def handle_exception(e):
-        app.logger.error(f"Unhandled Exception: {e}\n{traceback.format_exc()}")
+        app.logger.error(f"Unhandled Exception: {e}\\n{traceback.format_exc()}")
         return render_template("errors/500.html"), 500
 
     @app.errorhandler(429)
@@ -141,3 +156,9 @@ def create_app(config_name: str | None = None) -> Flask:
         return response
 
     return app
+"""
+
+with open('diskguardian/__init__.py', 'w', encoding='utf-8') as f:
+    f.write(new_init)
+
+print("Updated diskguardian/__init__.py and diskguardian/extensions.py")

@@ -6,7 +6,7 @@ import time
 import logging
 from datetime import datetime, timezone
 from ..extensions import db
-from ..models import User, ScanResult, SystemSnapshot, Alert
+from ..models import User, ScanHistory, SystemLogs, Notifications
 from . import smart_service as smart_svc
 from . import system_service as sys_svc
 from . import ai_service as ai_svc
@@ -46,24 +46,24 @@ def _monitor_loop(app):
                         health = ai_svc.calculate_health_score(smart, system_data)
                         risk = ai_svc.predict_risk(smart)
                         
-                        # Generate Alerts
+                        # Generate Notificationss
                         alerts_to_add = []
                         temp = smart.get("temperature", 0)
                         
-                        # High Temp Alert
+                        # High Temp Notifications
                         if temp > 55:
                             msg = f"Automatic Monitor: {drive_path} temperature critical ({temp}°C)"
                             # Only alert if we haven't alerted for this in the last hour
-                            recent = Alert.query.filter_by(user_id=user.id, type="temperature", read=False).first()
+                            recent = Notifications.query.filter_by(user_id=user.id, type="temperature", read=False).first()
                             if not recent:
-                                alerts_to_add.append(Alert(user_id=user.id, type="temperature", message=msg, severity="critical"))  # type: ignore
+                                alerts_to_add.append(Notifications(user_id=user.id, type="temperature", message=msg, severity="critical"))  # type: ignore
                         
-                        # Health Degradation Alert
+                        # Health Degradation Notifications
                         if health["score"] < 60:
-                            recent = Alert.query.filter_by(user_id=user.id, type="health", read=False).first()
+                            recent = Notifications.query.filter_by(user_id=user.id, type="health", read=False).first()
                             if not recent:
                                 msg = f"Automatic Monitor: {drive_path} health is poor ({health['score']}/100)"
-                                alerts_to_add.append(Alert(user_id=user.id, type="health", message=msg, severity="critical"))  # type: ignore
+                                alerts_to_add.append(Notifications(user_id=user.id, type="health", message=msg, severity="critical"))  # type: ignore
                                 
                         if alerts_to_add:
                             for a in alerts_to_add:
@@ -72,6 +72,12 @@ def _monitor_loop(app):
                             
             except Exception as e:
                 log.error(f"Error in monitor loop: {e}")
+                import traceback
+                log.error(traceback.format_exc())
+                try:
+                    db.session.rollback()
+                except:
+                    pass
                 
             # Sleep in chunks to allow quick termination
             for _ in range(INTERVAL_SECONDS):

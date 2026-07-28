@@ -6,7 +6,7 @@ from flask import render_template, redirect, url_for, flash, jsonify, abort
 from flask_login import login_required, current_user
 from . import admin_bp
 from ..extensions import db
-from ..models import User, ScanResult, Alert, LoginEvent, SystemSnapshot
+from ..models import User, ScanHistory, Notifications, Sessions, SystemLogs
 
 
 def admin_required(f):
@@ -23,10 +23,10 @@ def admin_required(f):
 @admin_required
 def index():
     users       = User.query.order_by(User.created_at.desc()).all()
-    total_scans = ScanResult.query.count()
-    total_alerts = Alert.query.filter_by(read=False).count()
-    recent_events = (LoginEvent.query
-                     .order_by(LoginEvent.timestamp.desc())
+    total_scans = ScanHistory.query.count()
+    total_alerts = Notifications.query.filter_by(read=False).count()
+    recent_events = (Sessions.query
+                     .order_by(Sessions.timestamp.desc())
                      .limit(20).all())
     stats = {
         "total_users":   User.query.count(),
@@ -68,10 +68,10 @@ def toggle_user(uid: int):
 def admin_stats():
     return jsonify({
         "total_users":   User.query.count(),
-        "total_scans":   ScanResult.query.count(),
+        "total_scans":   ScanHistory.query.count(),
         "google_users":  User.query.filter_by(oauth_provider="google").count(),
         "github_users":  User.query.filter_by(oauth_provider="github").count(),
         "local_users":   User.query.filter(User.password_hash.isnot(None)).count(),
-        "active_alerts": Alert.query.filter_by(read=False).count(),
+        "active_alerts": Notifications.query.filter_by(read=False).count(),
         "users": [u.to_dict() for u in User.query.order_by(User.last_login.desc()).all()],
     })

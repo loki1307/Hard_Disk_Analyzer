@@ -452,6 +452,10 @@ def ai_chat(question: str, smart: dict, health: dict | None = None, **kwargs) ->
     """
     Main entry point for AI chat. Matches question to topic, returns markdown response.
     """
+    import os
+    if not os.environ.get("OPENAI_API_KEY"):
+        return "AI Assistant is currently unavailable. Please configure OPENAI_API_KEY."
+
     if health is None:
         health = calculate_health_score(smart)
 

@@ -5,20 +5,20 @@ from flask import render_template, redirect, url_for
 from flask_login import login_required, current_user
 
 from . import dashboard_bp
-from ..models import ScanResult, Alert
+from ..models import ScanHistory, Notifications
 
 
 @dashboard_bp.route("/")
 @login_required
 def index():
     """Main dashboard page."""
-    recent_scans = (ScanResult.query
+    recent_scans = (ScanHistory.query
                     .filter_by(user_id=current_user.id)
-                    .order_by(ScanResult.timestamp.desc())
+                    .order_by(ScanHistory.timestamp.desc())
                     .limit(5).all())
-    unread_alerts = (Alert.query
+    unread_alerts = (Notifications.query
                      .filter_by(user_id=current_user.id, read=False)
-                     .order_by(Alert.created_at.desc())
+                     .order_by(Notifications.created_at.desc())
                      .limit(10).all())
     return render_template("dashboard/index.html",
                            recent_scans=recent_scans,
@@ -64,9 +64,9 @@ def partition():
 @login_required
 def history():
     """Historical analytics page."""
-    scans = (ScanResult.query
+    scans = (ScanHistory.query
              .filter_by(user_id=current_user.id)
-             .order_by(ScanResult.timestamp.desc())
+             .order_by(ScanHistory.timestamp.desc())
              .limit(50).all())
     scans_json = [s.to_dict() for s in scans]
     return render_template("dashboard/history.html", scans=scans, scans_json=scans_json)
