@@ -10,7 +10,7 @@ from datetime import datetime, timezone
 db = SQLAlchemy()
 
 
-class User(UserMixin, db.Model):
+class User(UserMixin, db.Model):  # type: ignore
     """
     Stores every unique user who has authenticated via Google or GitHub OAuth.
     A user is uniquely identified by (provider, provider_id).
@@ -61,7 +61,7 @@ class User(UserMixin, db.Model):
         return f"<User {self.id} {self.provider}:{self.name}>"
 
 
-class LoginEvent(db.Model):
+class LoginEvent(db.Model):  # type: ignore
     """
     Audit log — one row per login attempt (for analytics / admin panel).
     """

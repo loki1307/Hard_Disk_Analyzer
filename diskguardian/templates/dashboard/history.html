@@ -1,0 +1,113 @@
+{% extends "base.html" %}
+{% block title %}History — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-graph-up me-2 text-info"></i>Historical Analytics{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+<div class="row g-3 mb-4">
+  <div class="col-lg-6">
+    <div class="dg-card">
+      <div class="fw-600 mb-3" style="font-size:14px;">Health Score Trend</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="healthTrendChart"></canvas></div>
+    </div>
+  </div>
+  <div class="col-lg-6">
+    <div class="dg-card">
+      <div class="fw-600 mb-3" style="font-size:14px;">Temperature Trend</div>
+      <div class="chart-wrap" style="height:200px;"><canvas id="tempTrendChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<div class="dg-card">
+  <div class="d-flex justify-content-between align-items-center mb-3">
+    <span class="fw-600" style="font-size:14px;">Scan History ({{ scans|length }} records)</span>
+    <div class="d-flex gap-2">
+      <a href="/api/history" class="btn btn-sm btn-outline-secondary">
+        <i class="bi bi-download me-1"></i>Export JSON
+      </a>
+    </div>
+  </div>
+  {% if scans %}
+  <div class="table-responsive">
+    <table class="table smart-table table-hover">
+      <thead>
+        <tr><th>Date</th><th>Drive</th><th>Model</th><th>Type</th><th>Health</th><th>Risk</th><th>Temp</th><th>Hours</th><th>Report</th></tr>
+      </thead>
+      <tbody>
+        {% for s in scans %}
+        <tr>
+          <td style="font-size:11px;" class="text-muted">
+            {{ s.timestamp.strftime('%Y-%m-%d %H:%M') if s.timestamp else '—' }}
+          </td>
+          <td>{{ s.drive_path }}</td>
+          <td class="text-muted" style="font-size:11px;">{{ s.drive_model or '—' }}</td>
+          <td><span class="badge bg-secondary">{{ s.drive_type }}</span></td>
+          <td>
+            <span class="health-badge {{ 'excellent' if s.health_score >= 90 else 'good' if s.health_score >= 75 else 'warning' if s.health_score >= 55 else 'critical' }}">
+              {{ s.health_score|round(1) }}
+            </span>
+          </td>
+          <td><span class="badge bg-{{ 'success' if s.risk_level=='low' else 'warning' if s.risk_level=='medium' else 'danger' }}">{{ s.risk_level }}</span></td>
+          <td>{% if s.temperature %}{{ s.temperature }}°C{% else %}—{% endif %}</td>
+          <td>{% if s.power_on_hours %}{{ s.power_on_hours|int }}h{% else %}—{% endif %}</td>
+          <td class="d-flex gap-1">
+            <a href="/api/report/{{ s.id }}/pdf"   class="btn btn-sm btn-outline-danger  py-0 px-2" title="PDF"><i class="bi bi-file-pdf"></i></a>
+            <a href="/api/report/{{ s.id }}/excel" class="btn btn-sm btn-outline-success py-0 px-2" title="Excel"><i class="bi bi-file-excel"></i></a>
+            <a href="/api/report/{{ s.id }}/csv"   class="btn btn-sm btn-outline-info    py-0 px-2" title="CSV"><i class="bi bi-filetype-csv"></i></a>
+            <a href="/api/report/{{ s.id }}/json"  class="btn btn-sm btn-outline-secondary py-0 px-2" title="JSON"><i class="bi bi-braces"></i></a>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% else %}
+  <div class="text-center py-5 text-muted">
+    <i class="bi bi-graph-up d-block mb-2" style="font-size:40px;"></i>
+    No scan history yet. Run a scan from the Dashboard to start tracking.
+  </div>
+  {% endif %}
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script id="scans-data" type="application/json">{{ scans_json | tojson }}</script>
+<script>
+const scans = JSON.parse(document.getElementById('scans-data').textContent);
+if (scans.length > 0) {
+  const labels = scans.map(s => s.timestamp ? s.timestamp.slice(0,10) : '').reverse();
+  const health  = scans.map(s => s.health_score).reverse();
+  const temps   = scans.map(s => s.temperature).reverse();
+
+  new Chart(document.getElementById('healthTrendChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ label: 'Health Score', data: health,
+        borderColor: '#3b82f6', backgroundColor: 'rgba(59,130,246,0.1)',
+        fill: true, tension: 0.4, pointRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { min: 0, max: 100, ticks: { callback: v => v + '/100' } } }
+    }
+  });
+
+  new Chart(document.getElementById('tempTrendChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [{ label: 'Temperature °C', data: temps,
+        borderColor: '#ef4444', backgroundColor: 'rgba(239,68,68,0.1)',
+        fill: true, tension: 0.4, pointRadius: 4 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      scales: { y: { beginAtZero: false, ticks: { callback: v => v + '°C' } } }
+    }
+  });
+}
+</script>
+{% endblock %}

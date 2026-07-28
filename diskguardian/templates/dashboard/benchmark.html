@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+{% block title %}Benchmark — Hard Disk Analyzer{% endblock %}
+{% block page_title %}<i class="bi bi-lightning-charge me-2 text-warning"></i>Disk Speed Benchmark{% endblock %}
+
+{% block content %}
+<div class="fade-in">
+<div class="row g-3 mb-4">
+  <div class="col-lg-8">
+    <div class="dg-card">
+      <div class="fw-600 mb-3" style="font-size:14px;">Configure Benchmark</div>
+      <div class="row g-3">
+        <div class="col-sm-6">
+          <label class="form-label text-muted" style="font-size:12px;">Drive</label>
+          <select class="form-select form-select-sm bg-dark text-light border-secondary" id="benchDrive"></select>
+        </div>
+        <div class="col-sm-6">
+          <label class="form-label text-muted" style="font-size:12px;">Test Size</label>
+          <select class="form-select form-select-sm bg-dark text-light border-secondary" id="benchSize">
+            <option value="25">25 MB (Fast)</option>
+            <option value="50" selected>50 MB (Standard)</option>
+            <option value="100">100 MB (Accurate)</option>
+            <option value="200">200 MB (Thorough)</option>
+          </select>
+        </div>
+      </div>
+      <div class="mt-3">
+        <button class="btn btn-accent" id="benchBtn" onclick="runBenchmark()">
+          <i class="bi bi-play-fill me-1"></i> Start Benchmark
+        </button>
+        <span class="text-muted ms-3" style="font-size:12px;">⚠️ The drive will be temporarily written to during the test.</span>
+      </div>
+    </div>
+  </div>
+  <div class="col-lg-4">
+    <div class="dg-card text-center">
+      <div class="fw-600 mb-2" style="font-size:13px;">Performance Score</div>
+      <div style="font-size:52px;font-weight:900;line-height:1;" id="perfScore">—</div>
+      <div class="text-muted" style="font-size:12px;">/ 100</div>
+      <div id="perfRating" class="health-badge mx-auto mt-2">Not Tested</div>
+    </div>
+  </div>
+</div>
+
+<!-- Progress bar -->
+<div class="dg-card mb-4" id="benchProgress" style="display:none;">
+  <div class="d-flex align-items-center gap-3">
+    <div class="spinner-border spinner-border-sm text-primary"></div>
+    <div>
+      <div class="fw-600" style="font-size:13px;" id="benchStatus">Running sequential write test...</div>
+      <div class="progress mt-1" style="width:300px;">
+        <div class="progress-bar progress-bar-striped progress-bar-animated" id="benchBar" style="width:0%"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Results -->
+<div class="row g-3" id="benchResults" style="display:none;">
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#3b82f6;">
+      <div class="metric-label">Sequential Read</div>
+      <div class="metric-value" id="seqRead">—</div>
+      <div class="metric-sub">MB/s</div>
+      <i class="bi bi-arrow-down-circle metric-icon"></i>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#10b981;">
+      <div class="metric-label">Sequential Write</div>
+      <div class="metric-value" id="seqWrite">—</div>
+      <div class="metric-sub">MB/s</div>
+      <i class="bi bi-arrow-up-circle metric-icon"></i>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#8b5cf6;">
+      <div class="metric-label">Random Read (4K)</div>
+      <div class="metric-value" id="randRead">—</div>
+      <div class="metric-sub">MB/s</div>
+      <i class="bi bi-shuffle metric-icon"></i>
+    </div>
+  </div>
+  <div class="col-md-3">
+    <div class="metric-card" style="--card-accent:#f59e0b;">
+      <div class="metric-label">Random Write (4K)</div>
+      <div class="metric-value" id="randWrite">—</div>
+      <div class="metric-sub">MB/s</div>
+      <i class="bi bi-shuffle metric-icon"></i>
+    </div>
+  </div>
+
+  <div class="col-12">
+    <div class="dg-card">
+      <div class="fw-600 mb-3" style="font-size:14px;">Speed Comparison Chart</div>
+      <div class="chart-wrap" style="height:220px;">
+        <canvas id="benchChart"></canvas>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+fetch('/api/disks').then(r => r.json()).then(drives => {
+  document.getElementById('benchDrive').innerHTML = drives.map(d =>
+    `<option value="${d.device}">${d.device} (${d.drive_type})</option>`).join('');
+}).catch(() => {});
+
+let benchChart = null;
+
+async function runBenchmark() {
+  const drive   = document.getElementById('benchDrive').value;
+  const size_mb = parseInt(document.getElementById('benchSize').value);
+  const btn     = document.getElementById('benchBtn');
+  btn.disabled  = true;
+
+  document.getElementById('benchProgress').style.display = '';
+  document.getElementById('benchResults').style.display  = 'none';
+
+  const steps = [
+    ['Writing sequential data...', 20],
+    ['Reading sequential data...', 45],
+    ['Running random write test...', 70],
+    ['Running random read test...', 90],
+    ['Calculating scores...', 100],
+  ];
+  let si = 0;
+  const prog = setInterval(() => {
+    if (si < steps.length) {
+      document.getElementById('benchStatus').textContent = steps[si][0];
+      document.getElementById('benchBar').style.width   = steps[si][1] + '%';
+      si++;
+    }
+  }, (size_mb * 20));
+
+  try {
+    const r = await fetch('/api/benchmark', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ drive, size_mb })
+    });
+    const d = await r.json();
+    clearInterval(prog);
+    document.getElementById('benchProgress').style.display = 'none';
+
+    if (d.error) { showToast('Benchmark failed: ' + d.error, 'danger'); return; }
+
+    document.getElementById('seqRead').textContent  = d.seq_read_mbps;
+    document.getElementById('seqWrite').textContent = d.seq_write_mbps;
+    document.getElementById('randRead').textContent = d.rand_read_mbps;
+    document.getElementById('randWrite').textContent= d.rand_write_mbps;
+    document.getElementById('perfScore').textContent = d.performance_score;
+
+    const grades = { Excellent: 'excellent', Good: 'good', Average: 'warning', Slow: 'critical' };
+    const ratingEl = document.getElementById('perfRating');
+    ratingEl.textContent = d.rating;
+    ratingEl.className = `health-badge mx-auto mt-2 ${grades[d.rating] || 'good'}`;
+
+    document.getElementById('benchResults').style.display = '';
+
+    // Chart
+    if (benchChart) benchChart.destroy();
+    const ctx = document.getElementById('benchChart').getContext('2d');
+    benchChart = new Chart(ctx, {
+      type: 'bar',
+      data: {
+        labels: ['Seq Read', 'Seq Write', 'Rand Read (4K)', 'Rand Write (4K)'],
+        datasets: [{
+          label: 'MB/s',
+          data: [d.seq_read_mbps, d.seq_write_mbps, d.rand_read_mbps, d.rand_write_mbps],
+          backgroundColor: ['#3b82f6','#10b981','#8b5cf6','#f59e0b'],
+          borderRadius: 6,
+        }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: { y: { beginAtZero: true, ticks: { callback: v => v + ' MB/s' } } }
+      }
+    });
+    showToast(`Benchmark complete — ${d.rating} (${d.performance_score}/100)`, 'success');
+  } catch(e) {
+    clearInterval(prog);
+    showToast('Benchmark error. Try a smaller size.', 'danger');
+  } finally {
+    btn.disabled = false;
+    document.getElementById('benchProgress').style.display = 'none';
+  }
+}
+</script>
+{% endblock %}

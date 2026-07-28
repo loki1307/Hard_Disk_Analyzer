@@ -3,25 +3,25 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Sign In — DiskSense AI</title>
-  <meta name="description" content="Sign in to DiskSense AI — your intelligent hard disk health analyzer." />
+  <title>Sign In — Disk Pulse Pro</title>
+  <meta name="description" content="Sign in to Disk Pulse Pro — your advanced hard disk health analyzer." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet" />
   <style>
     *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
     :root {
-      --bg:         #07070f;
-      --surface:    #0f0f1a;
-      --card:       rgba(255,255,255,0.045);
-      --border:     rgba(255,255,255,0.09);
-      --accent:     #00d4ff;
-      --purple:     #a855f7;
+      --bg:         #020617; /* Deep Slate */
+      --surface:    #0f172a;
+      --card:       rgba(255,255,255,0.03);
+      --border:     rgba(255,255,255,0.08);
+      --accent:     #06b6d4; /* Pulse Cyan */
+      --purple:     #8b5cf6; /* Violet */
       --success:    #10b981;
       --warning:    #f59e0b;
       --danger:     #ef4444;
-      --text:       #f0f0ff;
-      --muted:      #5a5a7a;
+      --text:       #f8fafc;
+      --muted:      #94a3b8;
       --radius:     16px;
       --ease:       cubic-bezier(0.4,0,0.2,1);
     }
@@ -36,13 +36,12 @@
     }
     .orb-1 { width: 700px; height: 700px; background: var(--accent);   top: -250px; left: -200px; animation-delay: 0s; }
     .orb-2 { width: 600px; height: 600px; background: var(--purple);   bottom: -220px; right: -150px; animation-delay: -6s; }
-    .orb-3 { width: 350px; height: 350px; background: #3b82f6;         top: 50%; left: 50%; transform: translate(-50%,-50%); animation-delay: -11s; opacity: 0.07; }
     @keyframes drift { to { transform: translate(50px, 35px) scale(1.1); } }
 
     .bg-grid {
       position: fixed; inset: 0; z-index: 0;
-      background-image: linear-gradient(rgba(255,255,255,0.025) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.025) 1px, transparent 1px);
-      background-size: 44px 44px;
+      background-image: linear-gradient(rgba(255,255,255,0.02) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.02) 1px, transparent 1px);
+      background-size: 40px 40px;
       mask-image: radial-gradient(ellipse 80% 80% at 50% 50%, black 30%, transparent 100%);
     }
 
@@ -52,12 +51,12 @@
     /* ── Card ── */
     .card {
       width: 100%; max-width: 440px;
-      background: rgba(10,10,22,0.85);
+      background: rgba(15, 23, 42, 0.7);
       border: 1px solid var(--border);
       border-radius: 24px;
       padding: 40px 36px 32px;
-      backdrop-filter: blur(28px);
-      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 32px 80px rgba(0,0,0,0.7), 0 0 80px rgba(0,212,255,0.05);
+      backdrop-filter: blur(30px) saturate(150%);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 32px 80px rgba(0,0,0,0.8), 0 0 60px rgba(6, 182, 212, 0.1);
       animation: card-in 0.45s var(--ease) both;
     }
     @keyframes card-in { from { opacity:0; transform: translateY(24px) scale(0.96); } to { opacity:1; transform: none; } }
@@ -66,300 +65,212 @@
     .logo-wrap { display: flex; flex-direction: column; align-items: center; margin-bottom: 28px; }
     .logo-icon {
       width: 68px; height: 68px; border-radius: 20px; margin-bottom: 14px;
-      background: linear-gradient(135deg, rgba(0,212,255,0.18), rgba(168,85,247,0.18));
-      border: 1px solid rgba(0,212,255,0.25);
+      background: linear-gradient(135deg, rgba(6,182,212,0.18), rgba(139,92,246,0.18));
+      border: 1px solid rgba(6,182,212,0.3);
       display: flex; align-items: center; justify-content: center; font-size: 32px;
-      box-shadow: 0 0 40px rgba(0,212,255,0.15);
-      animation: pulse 3.5s ease-in-out infinite;
+      box-shadow: 0 0 30px rgba(6,182,212,0.2);
+      animation: heartbeat 2s ease-in-out infinite;
     }
-    @keyframes pulse { 0%,100%{box-shadow:0 0 40px rgba(0,212,255,0.15)} 50%{box-shadow:0 0 60px rgba(0,212,255,0.3),0 0 100px rgba(168,85,247,0.12)} }
+    @keyframes heartbeat { 
+      0% { transform: scale(1); box-shadow: 0 0 30px rgba(6,182,212,0.2); }
+      14% { transform: scale(1.05); box-shadow: 0 0 50px rgba(6,182,212,0.4); }
+      28% { transform: scale(1); box-shadow: 0 0 30px rgba(6,182,212,0.2); }
+      42% { transform: scale(1.05); box-shadow: 0 0 50px rgba(6,182,212,0.4); }
+      70% { transform: scale(1); box-shadow: 0 0 30px rgba(6,182,212,0.2); }
+    }
     .logo-name { font-size: 24px; font-weight: 800; letter-spacing: -0.5px; background: linear-gradient(90deg,var(--accent),var(--purple)); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text; }
-    .logo-sub  { font-size: 12px; color: var(--muted); margin-top: 4px; }
+    .logo-sub  { font-size: 13px; color: var(--muted); margin-top: 4px; font-weight: 500; }
 
-    /* ── Setup Alert (shown when credentials missing) ── */
-    .setup-alert {
-      display: none;
-      align-items: flex-start;
-      gap: 10px;
-      padding: 12px 14px;
-      background: rgba(245,158,11,0.08);
-      border: 1px solid rgba(245,158,11,0.25);
-      border-radius: 10px;
-      font-size: 12px;
-      color: #fbbf24;
-      line-height: 1.55;
-      margin-bottom: 20px;
+    /* ── Form Elements ── */
+    .form-group { margin-bottom: 18px; }
+    .form-label { display: block; font-size: 12px; color: var(--muted); font-weight: 600; margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px; }
+    .form-control {
+      width: 100%; padding: 13px 16px; background: rgba(255,255,255,0.03); border: 1px solid var(--border);
+      border-radius: 12px; color: var(--text); font-size: 14px; outline: none; transition: all 0.2s;
     }
-    .setup-alert.show { display: flex; animation: card-in 0.3s ease both; }
-    .setup-alert-icon { font-size: 16px; flex-shrink: 0; margin-top: 1px; }
-    .setup-alert a { color: var(--accent); text-decoration: none; font-weight: 600; }
-    .setup-alert a:hover { text-decoration: underline; }
+    .form-control:focus { border-color: var(--accent); background: rgba(255,255,255,0.06); box-shadow: 0 0 0 3px rgba(6,182,212,0.15); }
+    .form-control::placeholder { color: rgba(255,255,255,0.2); }
+    
+    .form-options { display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; font-size: 13px; }
+    .checkbox-wrap { display: flex; align-items: center; gap: 8px; cursor: pointer; color: var(--muted); }
+    .checkbox-wrap input { accent-color: var(--accent); width: 16px; height: 16px; cursor: pointer; }
+    .forgot-link { color: var(--accent); text-decoration: none; font-weight: 500; transition: color 0.2s; }
+    .forgot-link:hover { color: var(--text); }
+
+    .btn-submit {
+      width: 100%; padding: 14px; background: linear-gradient(135deg, var(--accent), var(--purple));
+      border: none; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 600; cursor: pointer;
+      box-shadow: 0 4px 20px rgba(6,182,212,0.3); transition: all 0.2s;
+    }
+    .btn-submit:hover { transform: translateY(-2px); box-shadow: 0 6px 25px rgba(6,182,212,0.4); }
+    .btn-submit:active { transform: translateY(0); }
 
     /* ── Error banner ── */
-    .error-banner { display: none; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(239,68,68,0.08); border: 1px solid rgba(239,68,68,0.25); border-radius: 10px; font-size: 12px; color: #f87171; margin-bottom: 18px; }
+    .error-banner { display: none; align-items: center; gap: 10px; padding: 12px 14px; background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3); border-radius: 12px; font-size: 13px; color: #f87171; margin-bottom: 20px; }
     .error-banner.show { display: flex; animation: shake 0.3s ease; }
     @keyframes shake { 0%,100%{transform:translateX(0)} 25%{transform:translateX(-5px)} 75%{transform:translateX(5px)} }
 
     /* ── Divider ── */
-    .divider { display: flex; align-items: center; gap: 10px; margin-bottom: 20px; }
+    .divider { display: flex; align-items: center; gap: 10px; margin: 24px 0; }
     .divider-line { flex: 1; height: 1px; background: var(--border); }
-    .divider-text { font-size: 11px; color: var(--muted); font-weight: 500; letter-spacing: 0.8px; text-transform: uppercase; }
+    .divider-text { font-size: 11px; color: var(--muted); font-weight: 600; letter-spacing: 0.8px; text-transform: uppercase; }
 
     /* ── Buttons ── */
-    .btn-group { display: flex; flex-direction: column; gap: 11px; margin-bottom: 20px; }
+    .btn-group { display: flex; gap: 12px; margin-bottom: 24px; }
 
     .oauth-btn {
-      position: relative; display: flex; align-items: center; justify-content: center; gap: 11px;
-      width: 100%; padding: 13px 20px; border-radius: 12px;
+      position: relative; display: flex; align-items: center; justify-content: center; gap: 10px;
+      flex: 1; padding: 12px; border-radius: 12px;
       border: 1px solid var(--border); font-size: 14px; font-weight: 600;
-      font-family: 'Inter', sans-serif; cursor: pointer; text-decoration: none;
-      transition: transform 0.2s var(--ease), box-shadow 0.2s var(--ease), border-color 0.2s, opacity 0.2s;
-      background: rgba(255,255,255,0.04); color: #e0e0f0;
+      cursor: pointer; text-decoration: none;
+      transition: all 0.2s var(--ease);
+      background: rgba(255,255,255,0.03); color: var(--text);
       overflow: hidden;
     }
-    .oauth-btn::after {
-      content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s;
-    }
-    .oauth-btn:not(.disabled):hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.18); }
-    .oauth-btn:not(.disabled):hover::after { opacity: 1; }
-    .oauth-btn:not(.disabled):active { transform: translateY(0); }
+    .oauth-btn::after { content: ''; position: absolute; inset: 0; opacity: 0; transition: opacity 0.2s; }
+    .oauth-btn:hover { transform: translateY(-2px); border-color: rgba(255,255,255,0.15); }
+    .oauth-btn:hover::after { opacity: 1; }
+    .oauth-btn:active { transform: translateY(0); }
 
-    /* Google hover glow */
-    .btn-google::after { background: linear-gradient(135deg, rgba(66,133,244,0.08), rgba(234,67,53,0.04)); }
-    .btn-google:not(.disabled):hover { box-shadow: 0 4px 20px rgba(66,133,244,0.18); }
-
-    /* GitHub hover glow */
+    /* Google */
+    .btn-google::after { background: linear-gradient(135deg, rgba(66,133,244,0.1), rgba(234,67,53,0.05)); }
+    .btn-google:hover { box-shadow: 0 4px 20px rgba(66,133,244,0.2); }
+    /* GitHub */
     .btn-github::after { background: rgba(255,255,255,0.05); }
-    .btn-github:not(.disabled):hover { box-shadow: 0 4px 20px rgba(255,255,255,0.06); }
-
-    /* Demo button */
-    .btn-demo {
-      background: linear-gradient(135deg, rgba(0,212,255,0.1), rgba(168,85,247,0.08));
-      border-color: rgba(0,212,255,0.25);
-      color: var(--accent);
-    }
-    .btn-demo:not(.disabled):hover { box-shadow: 0 4px 24px rgba(0,212,255,0.2); border-color: rgba(0,212,255,0.4); }
-
-    /* Disabled state */
-    .oauth-btn.disabled {
-      opacity: 0.38; cursor: not-allowed;
-      filter: grayscale(0.3);
-    }
-    .oauth-btn.disabled:hover { transform: none; box-shadow: none; border-color: var(--border); }
-
-    /* Lock badge on disabled buttons */
-    .lock-badge {
-      display: none; position: absolute; right: 12px; top: 50%; transform: translateY(-50%);
-      font-size: 11px; background: rgba(245,158,11,0.15); color: #fbbf24;
-      border: 1px solid rgba(245,158,11,0.2); border-radius: 6px; padding: 2px 7px; font-weight: 600;
-    }
-    .oauth-btn.disabled .lock-badge { display: block; }
+    .btn-github:hover { box-shadow: 0 4px 20px rgba(255,255,255,0.1); }
 
     .btn-icon { width: 22px; height: 22px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; }
 
-    /* ── Demo section separator ── */
-    .demo-divider { display: flex; align-items: center; gap: 10px; margin: 4px 0 12px; }
-    .demo-divider-line { flex: 1; height: 1px; background: rgba(0,212,255,0.15); }
-    .demo-divider-text { font-size: 10px; color: rgba(0,212,255,0.5); font-weight: 600; letter-spacing: 1px; text-transform: uppercase; }
-
-    /* ── Feature pills ── */
-    .pills { display: flex; flex-wrap: wrap; gap: 7px; justify-content: center; margin-bottom: 24px; }
-    .pill { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); background: rgba(255,255,255,0.03); border: 1px solid var(--border); border-radius: 20px; padding: 3px 10px; font-weight: 500; }
-    .pill-dot { width: 5px; height: 5px; border-radius: 50%; }
-
     /* ── Footer ── */
-    .card-foot { text-align: center; font-size: 11px; color: var(--muted); line-height: 1.6; }
-
-    /* ── Connecting overlay ── */
-    .overlay { position: fixed; inset: 0; background: rgba(7,7,15,0.88); backdrop-filter: blur(10px); z-index: 1000; display: none; flex-direction: column; align-items: center; justify-content: center; gap: 18px; }
-    .overlay.show { display: flex; }
-    .spinner { width: 46px; height: 46px; border: 3px solid rgba(255,255,255,0.07); border-top-color: var(--accent); border-radius: 50%; animation: spin 0.75s linear infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .overlay-text { font-size: 14px; color: var(--muted); }
-
-    /* ── Loading skeleton while fetching config ── */
-    .skeleton { height: 48px; border-radius: 12px; background: linear-gradient(90deg, rgba(255,255,255,0.04) 25%, rgba(255,255,255,0.07) 50%, rgba(255,255,255,0.04) 75%); background-size: 200% 100%; animation: shimmer 1.4s infinite; }
-    @keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }
+    .card-foot { text-align: center; font-size: 13px; color: var(--muted); }
+    .card-foot a { color: var(--accent); text-decoration: none; font-weight: 600; transition: color 0.2s; }
+    .card-foot a:hover { color: var(--text); }
 
     @media (max-width: 480px) { .card { padding: 32px 22px 26px; } }
   </style>
 </head>
 <body>
 
-<!-- Background -->
 <div class="bg-wrap" aria-hidden="true">
   <div class="orb orb-1"></div>
   <div class="orb orb-2"></div>
-  <div class="orb orb-3"></div>
 </div>
 <div class="bg-grid" aria-hidden="true"></div>
 
-<!-- Connecting overlay -->
-<div class="overlay" id="overlay" role="status">
-  <div class="spinner"></div>
-  <div class="overlay-text" id="overlayText">Connecting…</div>
-</div>
-
 <main class="page">
   <div class="card">
-
     <!-- Logo -->
     <div class="logo-wrap">
-      <div class="logo-icon" role="img" aria-label="DiskSense AI">💽</div>
-      <div class="logo-name">DiskSense AI</div>
-      <div class="logo-sub">Hard Disk Health Analyzer</div>
+      <div class="logo-icon" role="img" aria-label="Disk Pulse Pro">💽</div>
+      <div class="logo-name">Disk Pulse Pro</div>
+      <div class="logo-sub">Advanced Health Analyzer</div>
     </div>
 
     <!-- Error banner -->
-    <div class="error-banner" id="errorBanner" role="alert">
+    <div class="error-banner {% if error %}show{% endif %}" id="errorBanner" role="alert">
       <span>⚠️</span>
-      <span id="errorMsg">Authentication failed. Please try again.</span>
+      <span id="errorMsg">{% if error %}{{ error }}{% else %}Authentication failed. Please try again.{% endif %}</span>
     </div>
 
-    <!-- Setup alert (shown when credentials not configured) -->
-    <div class="setup-alert" id="setupAlert">
-      <span class="setup-alert-icon">⚙️</span>
-      <div>
-        <strong>OAuth credentials not set up yet.</strong><br/>
-        Edit your <code style="background:rgba(255,255,255,0.08);padding:1px 5px;border-radius:4px;">.env</code> file with real Google / GitHub credentials.
-        See <a href="#" onclick="alert('Open SETUP.md in the project folder for step-by-step instructions.')">SETUP.md</a> for instructions.
-        <br/><strong style="color:#34d399;">Use the Demo button below to test the app right now.</strong>
+    <!-- Manual Login Form -->
+    <form action="{{ url_for('auth.login') }}" method="POST">
+      <div class="form-group">
+        <label for="email" class="form-label">Email Address</label>
+        <input type="email" id="email" name="email" class="form-control" placeholder="admin@example.com" required />
       </div>
-    </div>
+      <div class="form-group">
+        <label for="password" class="form-label">Password</label>
+        <input type="password" id="password" name="password" class="form-control" placeholder="••••••••" required />
+      </div>
+      
+      <div class="form-options">
+        <label class="checkbox-wrap">
+          <input type="checkbox" name="remember" />
+          <span>Remember me</span>
+        </label>
+        <a href="{{ url_for('auth.forgot_password') }}" class="forgot-link">Forgot password?</a>
+      </div>
 
-    <!-- Auth buttons (loaded dynamically) -->
+      <button type="submit" class="btn-submit">Sign In to Dashboard</button>
+    </form>
+
     <div class="divider">
       <div class="divider-line"></div>
-      <span class="divider-text">Sign in to continue</span>
+      <span class="divider-text">Or continue with</span>
       <div class="divider-line"></div>
     </div>
 
-    <!-- Skeleton loaders while we fetch config -->
-    <div class="btn-group" id="btnGroup">
-      <div class="skeleton"></div>
-      <div class="skeleton"></div>
-    </div>
+    <!-- OAuth Buttons -->
+    <div class="btn-group">
+      {% if google_enabled %}
+      <a href="{{ url_for('auth.google') }}" class="oauth-btn btn-google" aria-label="Continue with Google">
+        <span class="btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+        </span>
+        Google
+      </a>
+      {% else %}
+      <a href="/auth/google" class="oauth-btn btn-google" aria-label="Continue with Google">
+        <span class="btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22">
+            <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+            <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+            <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+            <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+          </svg>
+        </span>
+        Google
+      </a>
+      {% endif %}
 
-    <!-- Feature pills -->
-    <div class="pills">
-      <div class="pill"><div class="pill-dot" style="background:var(--accent)"></div>SMART Analysis</div>
-      <div class="pill"><div class="pill-dot" style="background:var(--purple)"></div>AI Insights</div>
-      <div class="pill"><div class="pill-dot" style="background:var(--success)"></div>Risk Detection</div>
-      <div class="pill"><div class="pill-dot" style="background:var(--warning)"></div>Health Reports</div>
+      {% if github_enabled %}
+      <a href="{{ url_for('auth.github') }}" class="oauth-btn btn-github" aria-label="Continue with GitHub">
+        <span class="btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </span>
+        GitHub
+      </a>
+      {% else %}
+      <a href="/auth/github" class="oauth-btn btn-github" aria-label="Continue with GitHub">
+        <span class="btn-icon">
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
+            <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
+          </svg>
+        </span>
+        GitHub
+      </a>
+      {% endif %}
     </div>
 
     <div class="card-foot">
-      Your data stays local &mdash; nothing is shared externally.
+      Don't have an account? <a href="{{ url_for('auth.register') }}">Sign up now</a>
     </div>
 
   </div>
 </main>
 
 <script>
-/* ── Error param ──────────────────────────────────────────────── */
-(function() {
-  const p = new URLSearchParams(location.search);
-  const e = p.get('error');
-  if (!e) return;
-  const msgs = {
-    google_auth_failed:
-      'Google sign-in failed. Make sure GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET are set in .env',
-    github_auth_failed:
-      'GitHub sign-in failed. Make sure GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET are set in .env',
-    demo_disabled:
-      'Demo mode is disabled once real OAuth credentials are configured.',
-  };
-  document.getElementById('errorMsg').textContent = msgs[e] || 'Authentication failed. Please try again.';
-  document.getElementById('errorBanner').classList.add('show');
-})();
-
-/* ── Fetch config and render buttons ──────────────────────────── */
-async function loadButtons() {
-  let cfg = { google: false, github: false, demo: true, dev_mode: true };
-
-  try {
-    const res = await fetch('/api/config-status');
-    if (res.ok) cfg = await res.json();
-  } catch (_) { /* Flask not reachable — assume dev mode */ }
-
-  const anyOAuth = cfg.google || cfg.github;
-
-  // Show setup alert when neither OAuth provider is ready
-  if (!anyOAuth) {
-    document.getElementById('setupAlert').classList.add('show');
-  }
-
-  const group = document.getElementById('btnGroup');
-  group.innerHTML = '';                 // clear skeletons
-
-  /* ── Google button ── */
-  const googleEl = makeOAuthBtn({
-    href:     '/auth/google',
-    cls:      'btn-google',
-    label:    'Continue with Google',
-    disabled: !cfg.google,
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="22" height="22">
-      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
-      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
-      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
-      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
-    </svg>`,
-  });
-  group.appendChild(googleEl);
-
-  /* ── GitHub button ── */
-  const githubEl = makeOAuthBtn({
-    href:     '/auth/github',
-    cls:      'btn-github',
-    label:    'Continue with GitHub',
-    disabled: !cfg.github,
-    icon: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" width="22" height="22" fill="currentColor">
-      <path d="M12 0C5.374 0 0 5.373 0 12c0 5.302 3.438 9.8 8.207 11.387.599.111.793-.261.793-.577v-2.234c-3.338.726-4.033-1.416-4.033-1.416-.546-1.387-1.333-1.756-1.333-1.756-1.089-.745.083-.729.083-.729 1.205.084 1.839 1.237 1.839 1.237 1.07 1.834 2.807 1.304 3.492.997.107-.775.418-1.305.762-1.604-2.665-.305-5.467-1.334-5.467-5.931 0-1.311.469-2.381 1.236-3.221-.124-.303-.535-1.524.117-3.176 0 0 1.008-.322 3.301 1.23A11.509 11.509 0 0112 5.803c1.02.005 2.047.138 3.006.404 2.291-1.552 3.297-1.23 3.297-1.23.653 1.653.242 2.874.118 3.176.77.84 1.235 1.911 1.235 3.221 0 4.609-2.807 5.624-5.479 5.921.43.372.823 1.102.823 2.222v3.293c0 .319.192.694.801.576C20.566 21.797 24 17.3 24 12c0-6.627-5.373-12-12-12z"/>
-    </svg>`,
-  });
-  group.appendChild(githubEl);
-
-  /* ── Demo button (only when no OAuth configured + dev mode) ── */
-  if (cfg.demo) {
-    const sep = document.createElement('div');
-    sep.className = 'demo-divider';
-    sep.innerHTML = '<div class="demo-divider-line"></div><span class="demo-divider-text">Dev Mode</span><div class="demo-divider-line"></div>';
-    group.appendChild(sep);
-
-    const demoEl = makeOAuthBtn({
-      href:     '/auth/demo',
-      cls:      'btn-demo',
-      label:    'Try Demo (No Credentials Needed)',
-      disabled: false,
-      icon:     `<span style="font-size:18px;">🧪</span>`,
-    });
-    group.appendChild(demoEl);
-  }
-}
-
-function makeOAuthBtn({ href, cls, label, disabled, icon }) {
-  const a = document.createElement('a');
-  a.href      = disabled ? '#' : href;
-  a.className = `oauth-btn ${cls}${disabled ? ' disabled' : ''}`;
-  a.setAttribute('aria-label', label);
-  a.innerHTML = `
-    <span class="btn-icon">${icon}</span>
-    <span>${label}</span>
-    <span class="lock-badge">Setup required</span>
-  `;
-  if (!disabled) {
-    a.addEventListener('click', () => {
-      document.getElementById('overlayText').textContent = `Connecting to ${label.replace('Continue with ', '')}…`;
-      document.getElementById('overlay').classList.add('show');
-      setTimeout(() => document.getElementById('overlay').classList.remove('show'), 14000);
-    });
-  } else {
-    a.addEventListener('click', e => e.preventDefault());
-  }
-  return a;
-}
-
-loadButtons();
+  // Show error parameter if passed in URL (e.g. from failed OAuth callback)
+  (function() {
+    const p = new URLSearchParams(location.search);
+    const e = p.get('error');
+    if (!e && !`{{ error }}`) return;
+    if (e) {
+      const msgs = {
+        google_auth_failed: 'Google sign-in failed. Check credentials.',
+        github_auth_failed: 'GitHub sign-in failed. Check credentials.'
+      };
+      document.getElementById('errorMsg').textContent = msgs[e] || 'Authentication failed.';
+      document.getElementById('errorBanner').style.display = 'flex';
+    }
+  })();
 </script>
 </body>
 </html>
