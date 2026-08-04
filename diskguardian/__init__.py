@@ -9,7 +9,7 @@ from .extensions import db, login_manager, limiter, mail, csrf, migrate
 from .config import get_config, BASE_DIR
 
 # Canonical DB path — always use this, never the old instance/disksense.db
-DB_PATH = BASE_DIR / "diskguardian_temp.db"
+DB_PATH = BASE_DIR / "diskguardian.db"
 
 
 def _nuke_and_rebuild(app):
@@ -76,6 +76,8 @@ def create_app(config_name: str | None = None) -> Flask:
     uri = app.config.get("SQLALCHEMY_DATABASE_URI", "")
     if not uri or uri.startswith("sqlite"):
         app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{DB_PATH}"
+    elif uri.startswith("postgres://"):
+        app.config["SQLALCHEMY_DATABASE_URI"] = uri.replace("postgres://", "postgresql://", 1)
 
     # Initialize extensions
     db.init_app(app)
