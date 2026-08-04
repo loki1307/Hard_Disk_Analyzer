@@ -88,8 +88,9 @@ def create_app(config_name: str | None = None) -> Flask:
     csrf.init_app(app)
 
     with app.app_context():
-        _nuke_and_rebuild(app)
-        db.create_all()
+        if os.environ.get("FLASK_ENV") != "production":
+            _nuke_and_rebuild(app)
+            db.create_all()
 
     # Register blueprints
     from .auth import auth_bp
