@@ -5,11 +5,11 @@ import os
 import logging
 from pathlib import Path
 from flask import Flask, render_template
-from .extensions import db, login_manager, limiter, mail, csrf
+from .extensions import db, login_manager, limiter, mail, csrf, migrate
 from .config import get_config, BASE_DIR
 
 # Canonical DB path — always use this, never the old instance/disksense.db
-DB_PATH = BASE_DIR / "diskguardian.db"
+DB_PATH = BASE_DIR / "diskguardian_temp.db"
 
 
 def _nuke_and_rebuild(app):
@@ -79,6 +79,7 @@ def create_app(config_name: str | None = None) -> Flask:
 
     # Initialize extensions
     db.init_app(app)
+    migrate.init_app(app, db)
     login_manager.init_app(app)
     limiter.init_app(app)
     mail.init_app(app)
