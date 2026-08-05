@@ -49,19 +49,19 @@ def _nuke_and_rebuild(app):
             required = {"username", "oauth_provider", "oauth_id", "role",
                         "email_verified", "is_active_acc", "last_scan", "settings"}
             if existing and not required.issubset(existing):
-                print(f"[DiskGuardian] ⚠️  Old schema detected in {db_file}. Deleting and rebuilding.")
+                app.logger.warning(f"[DiskGuardian] ⚠️  Old schema detected in {db_file}. Deleting and rebuilding.")
                 db_file.unlink(missing_ok=True)
         except Exception as e:
-            print(f"[DiskGuardian] Schema check error: {e}")
+            app.logger.error(f"[DiskGuardian] Schema check error: {e}")
 
     # Also nuke the old instance/disksense.db if it exists
     old_db = BASE_DIR / "instance" / "disksense.db"
     if old_db.exists():
         try:
             old_db.unlink(missing_ok=True)
-            print("[DiskGuardian] Removed legacy instance/disksense.db")
+            app.logger.info("[DiskGuardian] Removed legacy instance/disksense.db")
         except OSError:
-            print("[DiskGuardian] Could not remove legacy instance/disksense.db (file in use)")
+            app.logger.warning("[DiskGuardian] Could not remove legacy instance/disksense.db (file in use)")
 
 
 def create_app(config_name: str | None = None) -> Flask:
@@ -88,6 +88,9 @@ def create_app(config_name: str | None = None) -> Flask:
     csrf.init_app(app)
 
     with app.app_context():
+        # Ensure models are registered with SQLAlchemy metadata
+        from . import models
+        
         if os.environ.get("FLASK_ENV") != "production":
             _nuke_and_rebuild(app)
         db.create_all()
