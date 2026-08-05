@@ -179,8 +179,8 @@
           <td>{% if s.temperature %}{{ s.temperature }}°C{% else %}—{% endif %}</td>
           <td class="text-muted" style="font-size:11px;">{{ s.timestamp.strftime('%Y-%m-%d %H:%M') }}</td>
           <td>
-            <a href="/api/report/{{ s.id }}/pdf" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
-            <a href="/api/report/{{ s.id }}/excel" class="btn btn-xs btn-outline-success btn-sm py-0 px-2 ms-1" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
+            <a href="{{ url_for('api.api_report', scan_id=s.id, fmt='pdf') }}" class="btn btn-xs btn-outline-danger btn-sm py-0 px-2" title="PDF"><i class="bi bi-file-earmark-pdf"></i></a>
+            <a href="{{ url_for('api.api_report', scan_id=s.id, fmt='excel') }}" class="btn btn-xs btn-outline-success btn-sm py-0 px-2 ms-1" title="Excel"><i class="bi bi-file-earmark-excel"></i></a>
           </td>
         </tr>
         {% endfor %}
