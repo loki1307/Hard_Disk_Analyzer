@@ -3,7 +3,7 @@ services:
     name: hard-disk-analyzer
     env: python
     buildCommand: pip install --upgrade pip && pip install -r requirements.txt
-    startCommand: flask db upgrade && python -m gunicorn app:app -c gunicorn.conf.py
+    startCommand: python -m gunicorn app:app -c gunicorn.conf.py
     envVars:
       - key: FLASK_ENV
         value: production

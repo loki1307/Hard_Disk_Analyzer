@@ -90,7 +90,7 @@ def create_app(config_name: str | None = None) -> Flask:
     with app.app_context():
         if os.environ.get("FLASK_ENV") != "production":
             _nuke_and_rebuild(app)
-            db.create_all()
+        db.create_all()
 
     # Register blueprints
     from .auth import auth_bp
